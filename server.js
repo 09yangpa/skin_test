@@ -1,0 +1,935 @@
+import { createServer } from "node:http";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { extname, join, normalize, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { DatabaseSync } from "node:sqlite";
+import { spawn } from "node:child_process";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const publicDir = resolve(__dirname, "public");
+const productDbPath = resolve(__dirname, "data/products.db");
+const importDir = resolve(__dirname, "data/imports");
+const port = Number(process.env.PORT || 3000);
+
+await loadDotEnv();
+
+const mimeTypes = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".svg": "image/svg+xml"
+};
+
+const diagnosisSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    profileTitle: { type: "string" },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
+    skinType: { type: "string" },
+    visibleSignals: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 6 },
+    priorityConcerns: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
+    routine: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        morning: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 5 },
+        evening: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 5 },
+        weekly: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 3 }
+      },
+      required: ["morning", "evening", "weekly"]
+    },
+    ingredientFocus: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 6 },
+    avoidOrCaution: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
+    productDirection: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 5 },
+    storeVisitReason: { type: "string" },
+    disclaimer: { type: "string" }
+  },
+  required: [
+    "profileTitle",
+    "confidence",
+    "skinType",
+    "visibleSignals",
+    "priorityConcerns",
+    "routine",
+    "ingredientFocus",
+    "avoidOrCaution",
+    "productDirection",
+    "storeVisitReason",
+    "disclaimer"
+  ]
+};
+
+const server = createServer(async (request, response) => {
+  try {
+    const url = new URL(request.url || "/", `http://${request.headers.host}`);
+
+    if (request.method === "GET" && url.pathname === "/api/health") {
+      return sendJson(response, 200, {
+        ok: true,
+        hasOpenAIKey: Boolean(process.env.OPENAI_API_KEY),
+        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        productDbReady: existsSync(productDbPath),
+        productCount: getProductCount()
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/skin-diagnosis") {
+      return handleSkinDiagnosis(request, response);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/product-import/preview") {
+      return handleProductImportPreview(request, response);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/product-import/commit") {
+      return handleProductImportCommit(request, response);
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/product-import/stats") {
+      return handleProductImportStats(response);
+    }
+
+    if (request.method === "GET" || request.method === "HEAD") {
+      return serveStatic(url.pathname, response, request.method === "HEAD");
+    }
+
+    sendJson(response, 405, { error: "Method not allowed" });
+  } catch (error) {
+    console.error(error);
+    sendJson(response, 500, { error: "Unexpected server error" });
+  }
+});
+
+server.listen(port, () => {
+  console.log(`Skin AI local page: http://localhost:${port}`);
+});
+
+async function handleSkinDiagnosis(request, response) {
+  const payload = await readJsonBody(request, 8 * 1024 * 1024);
+  const answers = payload.answers && typeof payload.answers === "object" ? payload.answers : {};
+  const images = Array.isArray(payload.images) ? payload.images.slice(0, 3) : [];
+
+  if (!images.length) {
+    return sendJson(response, 400, { error: "얼굴 사진을 1장 이상 업로드해 주세요." });
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    return sendJson(response, 200, {
+      mode: "demo",
+      diagnosis: buildDemoDiagnosis(answers),
+      recommendations: buildProductRecommendations(answers, buildDemoDiagnosis(answers)),
+      note: "OPENAI_API_KEY가 없어 데모 결과를 반환했습니다. .env에 키를 넣으면 실제 OpenAI 분석으로 전환됩니다."
+    });
+  }
+
+  const content = [
+    {
+      type: "input_text",
+      text: buildPrompt(answers)
+    },
+    ...images.map((imageUrl) => ({
+      type: "input_image",
+      image_url: imageUrl
+    }))
+  ];
+
+  const openAIResponse = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+      input: [
+        {
+          role: "system",
+          content: [
+            {
+              type: "input_text",
+              text: "You are a Korean cosmetic skin-care concierge. Provide non-medical, cosmetic guidance only. Do not diagnose diseases. If a medical issue may be present, recommend seeing a dermatologist. Return only valid JSON matching the schema."
+            }
+          ]
+        },
+        {
+          role: "user",
+          content
+        }
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "skin_diagnosis",
+          strict: true,
+          schema: diagnosisSchema
+        }
+      }
+    })
+  });
+
+  const result = await openAIResponse.json();
+
+  if (!openAIResponse.ok) {
+    console.error("OpenAI error", result);
+    return sendJson(response, openAIResponse.status, {
+      error: result.error?.message || "OpenAI 요청에 실패했습니다."
+    });
+  }
+
+  const text = extractOutputText(result);
+  let diagnosis;
+
+  try {
+    diagnosis = JSON.parse(text);
+  } catch (error) {
+    console.error("Failed to parse model JSON", text, error);
+    return sendJson(response, 502, { error: "AI 결과를 JSON으로 해석하지 못했습니다." });
+  }
+
+  sendJson(response, 200, {
+    mode: "openai",
+    diagnosis,
+    recommendations: buildProductRecommendations(answers, diagnosis)
+  });
+}
+
+async function handleProductImportPreview(request, response) {
+  const form = await readMultipartForm(request, 35 * 1024 * 1024);
+  const brand = String(form.fields.brand || "").trim();
+  const file = form.files.file;
+
+  if (!brand) {
+    return sendJson(response, 400, { error: "브랜드명을 입력해 주세요." });
+  }
+  if (!file) {
+    return sendJson(response, 400, { error: "업로드할 엑셀 파일을 선택해 주세요." });
+  }
+
+  const extension = extname(file.filename).toLowerCase();
+  if (![".xlsx", ".csv"].includes(extension)) {
+    return sendJson(response, 400, { error: "현재는 .xlsx 또는 .csv 파일만 지원합니다. .xls는 xlsx로 저장 후 업로드해 주세요." });
+  }
+
+  const safeBrand = sanitizeFileSegment(brand);
+  const safeName = sanitizeFileSegment(file.filename.replace(extension, ""));
+  const storedName = `${formatTimestampForFile()}_${safeName}${extension}`;
+  const brandImportDir = resolve(importDir, safeBrand);
+  await mkdir(brandImportDir, { recursive: true });
+  const storedPath = resolve(brandImportDir, storedName);
+  await writeFile(storedPath, file.data);
+
+  try {
+    const result = await runProductImportScript([
+      "preview",
+      "--db",
+      productDbPath,
+      "--file",
+      storedPath,
+      "--brand",
+      brand,
+      "--original-filename",
+      file.filename
+    ]);
+    sendJson(response, 200, result);
+  } catch (error) {
+    console.error("Product import preview failed", error);
+    sendJson(response, 500, { error: error.message || "엑셀 미리보기에 실패했습니다." });
+  }
+}
+
+async function handleProductImportCommit(request, response) {
+  const payload = await readJsonBody(request, 1024 * 1024);
+  const batchId = Number(payload.batchId || 0);
+  if (!batchId) {
+    return sendJson(response, 400, { error: "batchId가 필요합니다." });
+  }
+
+  try {
+    const result = await runProductImportScript([
+      "commit",
+      "--db",
+      productDbPath,
+      "--batch-id",
+      String(batchId)
+    ]);
+    sendJson(response, 200, result);
+  } catch (error) {
+    console.error("Product import commit failed", error);
+    sendJson(response, 500, { error: error.message || "DB 반영에 실패했습니다." });
+  }
+}
+
+async function handleProductImportStats(response) {
+  try {
+    const result = await runProductImportScript([
+      "stats",
+      "--db",
+      productDbPath
+    ]);
+    sendJson(response, 200, result);
+  } catch (error) {
+    console.error("Product import stats failed", error);
+    sendJson(response, 500, { error: error.message || "import 상태 조회에 실패했습니다." });
+  }
+}
+
+function buildPrompt(answers) {
+  return [
+    "아래 설문과 얼굴 사진을 바탕으로 한국어 피부 컨시어지 결과를 작성해줘.",
+    "의료 진단이 아니라 화장품/스킨케어 추천을 위한 1차 뷰티 상담으로만 표현해줘.",
+    "피부질환명 단정, 치료 표현, 약 처방 표현은 피하고 필요한 경우 피부과 상담을 권유해줘.",
+    "답변은 schema에 맞는 JSON만 반환해줘.",
+    "",
+    `설문 응답: ${JSON.stringify(answers, null, 2)}`
+  ].join("\n");
+}
+
+function buildDemoDiagnosis(answers) {
+  const concern = answers.concern || "수분 밸런스";
+  const sensitivity = answers.sensitivity || "보통";
+
+  return {
+    profileTitle: `${concern} 중심의 수분-진정 밸런스 타입`,
+    confidence: "medium",
+    skinType: "복합성 또는 수분 부족형으로 추정",
+    visibleSignals: [
+      "사진과 설문을 함께 보면 부위별 컨디션 차이가 있을 수 있습니다.",
+      "세안 후 당김이나 오후 유분감이 동시에 나타나는 패턴을 우선 고려합니다.",
+      "붉은기와 트러블 흔적은 자극을 줄인 루틴으로 천천히 관리하는 편이 좋습니다."
+    ],
+    priorityConcerns: [concern, `${sensitivity} 민감도 관리`, "피부 장벽 부담 줄이기"],
+    routine: {
+      morning: ["약산성 클렌저 또는 물세안", "수분 세럼", "가벼운 보습제", "자외선 차단제"],
+      evening: ["저자극 클렌징", "진정 토너 또는 에센스", "장벽 보습 크림", "국소 고민 부위 케어"],
+      weekly: ["주 1회 저자극 각질 케어", "피부가 예민한 날은 기능성 제품 쉬기"]
+    },
+    ingredientFocus: ["히알루론산", "판테놀", "세라마이드", "나이아신아마이드", "병풀 추출물"],
+    avoidOrCaution: ["고함량 산 성분을 매일 쓰는 루틴", "강한 향이나 알코올감이 큰 제품", "스크럽처럼 마찰이 큰 케어"],
+    productDirection: ["가벼운 수분 세럼", "장벽 보습 크림", "진정 중심 앰플", "데일리 선크림"],
+    storeVisitReason: "매장에서는 조명과 기기 측정으로 유분, 수분, 톤 편차를 더 정확히 확인할 수 있어 다음 제품 구성을 좁히기 좋습니다.",
+    disclaimer: "이 결과는 의료 진단이 아닌 화장품 선택을 위한 참고용입니다. 통증, 심한 가려움, 염증이 지속되면 피부과 전문의 상담을 권장합니다."
+  };
+}
+
+function extractOutputText(result) {
+  if (typeof result.output_text === "string") {
+    return result.output_text;
+  }
+
+  const chunks = [];
+  for (const item of result.output || []) {
+    for (const part of item.content || []) {
+      if (part.type === "output_text" && typeof part.text === "string") {
+        chunks.push(part.text);
+      }
+    }
+  }
+  return chunks.join("\n").trim();
+}
+
+function getProductCount() {
+  if (!existsSync(productDbPath)) return 0;
+  const db = new DatabaseSync(productDbPath, { readOnly: true });
+  try {
+    return Number(db.prepare("SELECT COUNT(*) AS count FROM products WHERE recommendation_ready = 1").get().count || 0);
+  } finally {
+    db.close();
+  }
+}
+
+function loadProductsFromDb() {
+  if (!existsSync(productDbPath)) return [];
+
+  const db = new DatabaseSync(productDbPath, { readOnly: true });
+  try {
+    const products = db.prepare(
+      `SELECT id, brand, product_name, price, price_tier, category, volume,
+              ingredients_raw, benefit_tags, caution_tags, usage, caution_text
+         FROM products
+        WHERE recommendation_ready = 1`
+    ).all();
+    const ingredientRows = db.prepare(
+      `SELECT product_id, ingredient_name
+         FROM product_ingredients
+        ORDER BY product_id, ingredient_order`
+    ).all();
+    const ingredientsByProduct = new Map();
+    for (const row of ingredientRows) {
+      if (!ingredientsByProduct.has(row.product_id)) {
+        ingredientsByProduct.set(row.product_id, []);
+      }
+      ingredientsByProduct.get(row.product_id).push(row.ingredient_name);
+    }
+
+    return products.map((product) => ({
+      ...product,
+      price: Number(product.price || 0),
+      benefit_tags: safeJsonArray(product.benefit_tags),
+      caution_tags: safeJsonArray(product.caution_tags),
+      ingredients: ingredientsByProduct.get(product.id) || []
+    }));
+  } finally {
+    db.close();
+  }
+}
+
+function safeJsonArray(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function buildProductRecommendations(answers, diagnosis) {
+  const products = loadProductsFromDb();
+  if (!products.length) {
+    return {
+      summary: "추천 DB에 전성분 상품이 아직 없습니다.",
+      profile: buildRecommendationProfile(answers, diagnosis),
+      routine: [],
+      priceTiers: [],
+      avoidProducts: [],
+      totalProductsScored: 0
+    };
+  }
+
+  const profile = buildRecommendationProfile(answers, diagnosis);
+  const scored = products
+    .map((product) => scoreProduct(product, profile))
+    .sort((left, right) => right.score - left.score);
+
+  const positiveProducts = scored.filter((item) => item.score > 0);
+  const routine = buildRoutineRecommendations(positiveProducts, profile);
+  const priceTiers = buildPriceTierRecommendations(positiveProducts, profile);
+  const avoidProducts = scored
+    .filter((item) => item.riskScore >= profile.riskThreshold || item.score < 0)
+    .slice(0, 5)
+    .map(toRecommendationProduct);
+
+  return {
+    summary: `${products.length}개 전성분 상품 중 ${positiveProducts.length}개를 피부 상태와 성분 기준으로 후보화했습니다.`,
+    profile,
+    routine,
+    priceTiers,
+    avoidProducts,
+    totalProductsScored: products.length
+  };
+}
+
+function buildRecommendationProfile(answers, diagnosis) {
+  const wantedBenefits = new Set();
+  const avoidCautions = new Set();
+  const notes = [];
+
+  const gender = answers.gender || "";
+  const ageRange = answers.ageRange || "";
+  const routineStyle = answers.routineStyle || "";
+  const routineTime = answers.routineTime || "";
+  const budgetPreference = answers.budgetPreference || "";
+  const subscriptionPreference = answers.subscriptionPreference || "";
+  const preferredTexture = answers.preferredTexture || "";
+  const sunExposure = answers.sunExposure || "";
+  const repeatedIrritation = answers.shavingMakeupIrritation || "";
+  const concern = `${answers.concern || ""} ${diagnosis?.priorityConcerns?.join(" ") || ""}`;
+  const goal = `${answers.goal || ""} ${diagnosis?.ingredientFocus?.join(" ") || ""}`;
+  const sensitivity = `${answers.sensitivity || ""} ${diagnosis?.skinType || ""}`;
+  const skinSignals = `${concern} ${goal} ${sensitivity} ${answers.afterCleanse || ""} ${answers.oilTiming || ""} ${answers.breakoutFrequency || ""} ${answers.texture || ""} ${preferredTexture} ${sunExposure} ${repeatedIrritation}`;
+  const compactRoutine = /올인원|2~3단계|1분 이하|3분 정도/.test(`${routineStyle} ${routineTime}`);
+  const layeredRoutine = /여러 단계|10분 이상|5분 정도/.test(`${routineStyle} ${routineTime}`);
+
+  if (/남성/.test(gender) && !layeredRoutine) {
+    notes.push("남성 고객에게 부담이 적은 짧고 실용적인 루틴을 우선합니다.");
+  }
+  if (/여성/.test(gender) && layeredRoutine) {
+    notes.push("여러 단계를 시도할 의향이 있어 고민별 레이어드 루틴을 열어둡니다.");
+  }
+  if (compactRoutine) {
+    notes.push("올인원/짧은 관리 시간에 맞춰 제품 수를 줄인 핵심 루틴을 우선합니다.");
+  }
+  if (layeredRoutine) {
+    notes.push("관리 시간이 충분해 토너, 세럼, 크림, 주간 케어를 단계별로 조합합니다.");
+  }
+  if (/30대|40대|50대/.test(ageRange)) {
+    wantedBenefits.add("anti_aging");
+    wantedBenefits.add("barrier");
+    notes.push("나이대 특성을 반영해 장벽과 탄력 케어 비중을 높입니다.");
+  }
+  if (/10대|20대/.test(ageRange)) {
+    wantedBenefits.add("soothing");
+    if (/트러블|피지|번들|모공/.test(skinSignals)) {
+      wantedBenefits.add("oil_control");
+    }
+  }
+
+  if (/수분|속당김|건조|보습|각질|뜬다|당긴다/.test(skinSignals)) {
+    wantedBenefits.add("hydration");
+    wantedBenefits.add("barrier");
+    notes.push("수분 부족과 장벽 보완을 우선합니다.");
+  }
+  if (/붉은|예민|민감|진정|따갑|면도/.test(skinSignals)) {
+    wantedBenefits.add("soothing");
+    wantedBenefits.add("barrier");
+    avoidCautions.add("fragrance");
+    avoidCautions.add("essential_oil");
+    notes.push("민감 신호가 있어 향료/에센셜오일 부담을 낮춥니다.");
+  }
+  if (/트러블|모공|피지|번들|유분|전체적으로 번들|오전부터|점심 이후|운동|땀/.test(skinSignals)) {
+    wantedBenefits.add("oil_control");
+    wantedBenefits.add("texture");
+    notes.push("피지와 모공 부담을 줄이는 성분을 가점 처리합니다.");
+  }
+  if (/톤|칙칙|미백|브라이트|야외 활동/.test(skinSignals)) {
+    wantedBenefits.add("brightening");
+    notes.push("톤 균일감 관련 성분을 보조 가점으로 봅니다.");
+  }
+  if (/오돌토돌|거칠|결|필링|메이크업/.test(skinSignals)) {
+    wantedBenefits.add("texture");
+  }
+  if (/메이크업/.test(repeatedIrritation)) {
+    wantedBenefits.add("hydration");
+    notes.push("메이크업 밀착과 클렌징 부담을 고려해 수분감과 결 정돈을 함께 봅니다.");
+  }
+  if (/야외 활동|운동|땀/.test(sunExposure)) {
+    wantedBenefits.add("soothing");
+    wantedBenefits.add("barrier");
+    avoidCautions.add("heavy_oil");
+    notes.push("야외/운동 노출이 있어 산뜻한 장벽 케어를 우선합니다.");
+  }
+
+  if (/높음|민감|예민/.test(sensitivity)) {
+    avoidCautions.add("acid_exfoliant");
+    avoidCautions.add("retinoid");
+  }
+  if (answers.avoidPreference === "강한 향") {
+    avoidCautions.add("fragrance");
+    avoidCautions.add("essential_oil");
+  }
+  if (answers.avoidPreference === "무거운 크림") {
+    avoidCautions.add("heavy_oil");
+  }
+  if (answers.goal === "피지 조절") {
+    avoidCautions.add("heavy_oil");
+  }
+  if (/가벼운 젤|끈적임|운동|땀/.test(`${preferredTexture} ${answers.avoidPreference || ""} ${sunExposure}`)) {
+    avoidCautions.add("heavy_oil");
+  }
+
+  if (!wantedBenefits.size) {
+    wantedBenefits.add("hydration");
+    wantedBenefits.add("barrier");
+  }
+
+  return {
+    wantedBenefits: Array.from(wantedBenefits),
+    avoidCautions: Array.from(avoidCautions),
+    gender,
+    ageRange,
+    routineStyle,
+    routineTime,
+    budgetPreference,
+    subscriptionPreference,
+    preferredTexture,
+    sensitivity: answers.sensitivity || "",
+    goal: answers.goal || "",
+    concern: answers.concern || "",
+    compactRoutine,
+    layeredRoutine,
+    notes: dedupe(notes),
+    riskThreshold: /높음/.test(sensitivity) ? 4 : 6
+  };
+}
+
+function scoreProduct(product, profile) {
+  let score = 0;
+  let riskScore = 0;
+  const reasons = [];
+  const cautions = [];
+
+  for (const tag of profile.wantedBenefits) {
+    if (product.benefit_tags.includes(tag)) {
+      score += benefitWeight(tag);
+      reasons.push(`${benefitLabel(tag)} 관련 성분 포함`);
+    }
+  }
+
+  for (const tag of product.caution_tags) {
+    const weight = cautionWeight(tag);
+    riskScore += weight;
+    if (profile.avoidCautions.includes(tag)) {
+      score -= weight * 2;
+      cautions.push(`${cautionLabel(tag)} 주의`);
+    } else {
+      score -= Math.max(1, Math.floor(weight / 2));
+      cautions.push(`${cautionLabel(tag)} 포함`);
+    }
+  }
+
+  score += categoryFitScore(product.category, profile);
+  score += pricePreferenceScore(product.price_tier, profile.budgetPreference);
+  if (product.category === "body" || product.category === "lip") score -= 8;
+
+  return {
+    ...product,
+    score,
+    riskScore,
+    reasons: dedupe(reasons).slice(0, 5),
+    cautions: dedupe(cautions).slice(0, 5)
+  };
+}
+
+function benefitWeight(tag) {
+  return {
+    hydration: 10,
+    barrier: 12,
+    soothing: 11,
+    oil_control: 8,
+    brightening: 7,
+    texture: 5,
+    anti_aging: 4
+  }[tag] || 4;
+}
+
+function cautionWeight(tag) {
+  return {
+    fragrance: 4,
+    essential_oil: 4,
+    acid_exfoliant: 3,
+    retinoid: 6,
+    heavy_oil: 2
+  }[tag] || 2;
+}
+
+function categoryFitScore(category, profile) {
+  if (category === "cleanser") return profile.sensitivity === "높음" ? 5 : 4;
+  if (category === "toner") return profile.compactRoutine ? 1 : 4;
+  if (category === "serum") return profile.layeredRoutine ? 9 : 7;
+  if (category === "cream") return profile.wantedBenefits.includes("barrier") ? 10 : 6;
+  if (category === "mask") return profile.layeredRoutine ? 5 : 1;
+  if (category === "etc") return 1;
+  return 0;
+}
+
+function pricePreferenceScore(priceTier, budgetPreference) {
+  if (/저가/.test(budgetPreference)) {
+    if (priceTier === "low") return 8;
+    if (priceTier === "mid") return 2;
+    if (priceTier === "high") return -5;
+  }
+  if (/중가/.test(budgetPreference)) {
+    if (priceTier === "mid") return 7;
+    if (priceTier === "low") return 3;
+    if (priceTier === "high") return 1;
+  }
+  if (/고가/.test(budgetPreference)) {
+    if (priceTier === "high") return 6;
+    if (priceTier === "mid") return 3;
+  }
+  if (/적합도/.test(budgetPreference)) {
+    return 1;
+  }
+  return 0;
+}
+
+function buildRoutineRecommendations(scoredProducts, profile) {
+  const routineSlots = profile.compactRoutine
+    ? [
+        { category: "cleanser", title: "1. 저자극 클렌저", instruction: "저녁 세안만큼은 부드럽게 정리해 다음 제품 흡수를 준비합니다." },
+        { category: "serum", title: "2. 핵심 세럼/앰플", instruction: "가장 큰 고민을 겨냥한 제품 1개만 얹어 루틴을 짧게 가져갑니다." },
+        { category: "cream", title: "3. 올인원 마무리 크림", instruction: "수분과 장벽감을 한 번에 잠그는 제품을 우선합니다." }
+      ]
+    : [
+        { category: "cleanser", title: "1. 클렌저", instruction: "아침에는 가볍게, 저녁에는 노폐물과 선케어를 부드럽게 정리합니다." },
+        { category: "toner", title: "2. 토너/로션", instruction: "세안 후 피부결을 정돈하고 다음 단계 흡수를 돕습니다." },
+        { category: "serum", title: "3. 세럼/앰플", instruction: "고민 성분을 집중적으로 얹는 단계입니다." },
+        { category: "cream", title: "4. 크림/젤크림", instruction: "수분과 장벽감을 잠그는 마무리 단계입니다." },
+        { category: "mask", title: "5. 주간 스페셜 케어", instruction: "피부 컨디션이 괜찮은 날 주 1~2회 보조로 사용합니다." }
+      ];
+
+  return routineSlots
+    .map((slot) => {
+      const products = scoredProducts
+        .filter((product) => product.category === slot.category)
+        .slice(0, 2)
+        .map(toRecommendationProduct);
+      return products.length ? { ...slot, products } : null;
+    })
+    .filter(Boolean);
+}
+
+function buildPriceTierRecommendations(scoredProducts, profile) {
+  const tiers = [
+    { key: "low", label: "부담 적은 시작", description: "처음 써보기 좋고 매일 편하게 이어가기 좋은 제품" },
+    { key: "mid", label: "데일리 밸런스", description: "성분, 사용감, 가격의 균형을 맞춘 꾸준한 관리 제품" },
+    { key: "high", label: "집중 케어", description: "특정 피부 고민을 더 세밀하게 관리하고 싶을 때의 선택지" }
+  ];
+  const preferredTier = preferredPriceTier(profile.budgetPreference);
+  const orderedTiers = preferredTier
+    ? [...tiers].sort((left, right) => (left.key === preferredTier ? -1 : right.key === preferredTier ? 1 : 0))
+    : tiers;
+
+  return orderedTiers.map((tier) => ({
+    ...tier,
+    preferred: tier.key === preferredTier,
+    label: tier.key === preferredTier ? `${tier.label} · 선호` : tier.label,
+    products: scoredProducts
+      .filter((product) => product.price_tier === tier.key)
+      .slice(0, 3)
+      .map(toRecommendationProduct)
+  }));
+}
+
+function preferredPriceTier(budgetPreference) {
+  if (/저가/.test(budgetPreference)) return "low";
+  if (/중가/.test(budgetPreference)) return "mid";
+  if (/고가/.test(budgetPreference)) return "high";
+  return "";
+}
+
+function toRecommendationProduct(product) {
+  return {
+    id: product.id,
+    brand: product.brand,
+    productName: product.product_name,
+    price: product.price,
+    priceTier: product.price_tier,
+    category: product.category,
+    volume: product.volume,
+    score: product.score,
+    riskScore: product.riskScore,
+    reasons: product.reasons.length ? product.reasons : ["현재 피부 목표와 기본 보습 루틴에 맞는 후보입니다."],
+    cautions: product.cautions,
+    keyIngredients: pickKeyIngredients(product.ingredients)
+  };
+}
+
+function pickKeyIngredients(ingredients) {
+  const keywords = [
+    "글리세린",
+    "판테놀",
+    "세라마이드",
+    "스쿠알란",
+    "나이아신아마이드",
+    "히알루론",
+    "알란토인",
+    "토코페롤",
+    "락틱애씨드",
+    "레티노"
+  ];
+  return ingredients.filter((ingredient) => keywords.some((keyword) => ingredient.includes(keyword))).slice(0, 5);
+}
+
+function benefitLabel(tag) {
+  return {
+    hydration: "수분/보습",
+    barrier: "장벽 보완",
+    soothing: "진정",
+    oil_control: "피지/모공",
+    brightening: "톤 개선",
+    texture: "피부결",
+    anti_aging: "탄력/안티에이징"
+  }[tag] || tag;
+}
+
+function cautionLabel(tag) {
+  return {
+    fragrance: "향료",
+    essential_oil: "에센셜오일",
+    acid_exfoliant: "산/필링 성분",
+    retinoid: "레티노이드",
+    heavy_oil: "무거운 오일감"
+  }[tag] || tag;
+}
+
+function dedupe(values) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+async function serveStatic(pathname, response, headOnly) {
+  const safePath = pathname === "/" ? "/index.html" : pathname;
+  const filePath = normalize(join(publicDir, safePath));
+
+  if (!filePath.startsWith(publicDir)) {
+    return sendText(response, 403, "Forbidden");
+  }
+
+  const targetPath = existsSync(filePath) ? filePath : join(publicDir, "index.html");
+  const ext = extname(targetPath);
+  const contentType = mimeTypes[ext] || "application/octet-stream";
+
+  response.writeHead(200, { "Content-Type": contentType });
+  if (!headOnly) {
+    response.end(await readFile(targetPath));
+  } else {
+    response.end();
+  }
+}
+
+async function readJsonBody(request, maxBytes) {
+  let body = "";
+  for await (const chunk of request) {
+    body += chunk;
+    if (Buffer.byteLength(body) > maxBytes) {
+      throw new Error("Request body too large");
+    }
+  }
+  return body ? JSON.parse(body) : {};
+}
+
+async function readRawBody(request, maxBytes) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of request) {
+    size += chunk.length;
+    if (size > maxBytes) {
+      throw new Error("Request body too large");
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+async function readMultipartForm(request, maxBytes) {
+  const contentType = request.headers["content-type"] || "";
+  const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
+  if (!boundaryMatch) {
+    throw new Error("multipart boundary를 찾지 못했습니다.");
+  }
+
+  const boundary = boundaryMatch[1] || boundaryMatch[2];
+  const body = await readRawBody(request, maxBytes);
+  const rawParts = splitBuffer(body, Buffer.from(`--${boundary}`));
+  const fields = {};
+  const files = {};
+
+  for (let part of rawParts) {
+    if (!part.length) continue;
+    if (part.equals(Buffer.from("--\r\n")) || part.equals(Buffer.from("--"))) continue;
+    if (part.subarray(0, 2).toString() === "\r\n") {
+      part = part.subarray(2);
+    }
+    if (part.subarray(-2).toString() === "\r\n") {
+      part = part.subarray(0, -2);
+    }
+    if (part.subarray(-2).toString() === "--") {
+      part = part.subarray(0, -2);
+    }
+
+    const headerEnd = part.indexOf(Buffer.from("\r\n\r\n"));
+    if (headerEnd === -1) continue;
+
+    const headerText = part.subarray(0, headerEnd).toString("utf8");
+    const data = part.subarray(headerEnd + 4);
+    const disposition = headerText.split(/\r?\n/).find((line) => line.toLowerCase().startsWith("content-disposition")) || "";
+    const nameMatch = disposition.match(/name="([^"]+)"/);
+    if (!nameMatch) continue;
+    const name = nameMatch[1];
+    const filenameMatch = disposition.match(/filename="([^"]*)"/);
+
+    if (filenameMatch) {
+      files[name] = {
+        filename: filenameMatch[1] || "upload.xlsx",
+        data
+      };
+    } else {
+      fields[name] = data.toString("utf8");
+    }
+  }
+
+  return { fields, files };
+}
+
+function splitBuffer(buffer, separator) {
+  const parts = [];
+  let start = 0;
+  let index = buffer.indexOf(separator, start);
+  while (index !== -1) {
+    parts.push(buffer.subarray(start, index));
+    start = index + separator.length;
+    index = buffer.indexOf(separator, start);
+  }
+  parts.push(buffer.subarray(start));
+  return parts;
+}
+
+function runProductImportScript(args) {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const child = spawn("python3", [resolve(__dirname, "scripts/product_import_admin.py"), ...args], {
+      cwd: __dirname
+    });
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", rejectPromise);
+    child.on("close", (code) => {
+      if (code !== 0) {
+        return rejectPromise(new Error(stderr || stdout || `product import script exited with ${code}`));
+      }
+      try {
+        resolvePromise(JSON.parse(stdout));
+      } catch (error) {
+        rejectPromise(new Error(`import 결과 JSON 해석 실패: ${stdout || stderr}`));
+      }
+    });
+  });
+}
+
+function sanitizeFileSegment(value) {
+  return String(value || "")
+    .normalize("NFC")
+    .replace(/[\\/:"*?<>|]+/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80) || "upload";
+}
+
+function formatTimestampForFile() {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, "0");
+  return [
+    now.getFullYear(),
+    pad(now.getMonth() + 1),
+    pad(now.getDate())
+  ].join("") + "_" + [pad(now.getHours()), pad(now.getMinutes()), pad(now.getSeconds())].join("");
+}
+
+function sendJson(response, statusCode, data) {
+  response.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify(data));
+}
+
+function sendText(response, statusCode, text) {
+  response.writeHead(statusCode, { "Content-Type": "text/plain; charset=utf-8" });
+  response.end(text);
+}
+
+async function loadDotEnv() {
+  const envPath = resolve(__dirname, ".env");
+  if (!existsSync(envPath)) return;
+
+  const file = await readFile(envPath, "utf8");
+  for (const line of file.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const separatorIndex = trimmed.indexOf("=");
+    if (separatorIndex === -1) continue;
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const value = trimmed.slice(separatorIndex + 1).trim().replace(/^['"]|['"]$/g, "");
+    if (!process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+}

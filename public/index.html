@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>THE BEAUTY AI Skin Check</title>
+  <meta name="description" content="채팅형 AI 피부 컨시어지로 설문과 사진을 받아 OpenAI 기반 피부 루틴을 추천하는 로컬 테스트 페이지입니다." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="site-shell">
+    <nav class="top-nav" aria-label="메인 네비게이션">
+      <a class="brand" href="/">THE BEAUTY</a>
+      <button class="nav-cta" type="button" data-open-skin-modal>AI 피부진단 시작</button>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">AI SKIN CONCIERGE · CHAT PILOT</p>
+        <h1>AI와 대화하듯 완성하는<br />맞춤 피부 루틴 상담</h1>
+        <p class="hero-description">
+          성별, 나이대, 루틴 성향, 피부 관련 질문을 채팅처럼 답하고, 마지막에 얼굴 사진을 올리면 OpenAI가 설문과 이미지를 함께 보고
+          피부 컨디션과 루틴 방향을 정리합니다.
+        </p>
+        <div class="hero-actions">
+          <button class="primary-button" type="button" data-open-skin-modal>채팅으로 진단하기</button>
+          <a class="ghost-button" href="#flow">진단 흐름 보기</a>
+        </div>
+      </div>
+
+      <aside class="hero-panel" aria-label="진단 미리보기">
+        <div class="scan-card">
+          <span class="scan-glow"></span>
+          <p class="eyebrow">Conversation</p>
+          <strong>Profile + skin questions</strong>
+          <p>선택형 채팅으로 이탈을 줄이고, 마지막에 실제 AI 분석 결과를 리포트 카드로 보여줍니다.</p>
+        </div>
+        <div class="status-strip">
+          <span id="apiStatusDot" class="status-dot"></span>
+          <span id="apiStatusText">API 상태 확인 중</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="flow-grid" id="flow" aria-label="진단 흐름">
+      <article>
+        <span>01</span>
+        <strong>AI 채팅 문진</strong>
+        <p>성별, 나이대, 루틴 성향, 세안 후 느낌, 유분, 민감도까지 순서대로 묻습니다.</p>
+      </article>
+      <article>
+        <span>02</span>
+        <strong>사진 업로드</strong>
+        <p>정면/측면 사진을 최대 3장까지 올리고 브라우저에서 압축합니다.</p>
+      </article>
+      <article>
+        <span>03</span>
+        <strong>AI 결과</strong>
+        <p>피부 타입, 우선 고민, 추천 제품과 가격을 보여주고 마지막에 방송 알림 설정으로 이어집니다.</p>
+      </article>
+    </section>
+  </main>
+
+  <section class="skin-modal" id="skinModal" aria-hidden="true" hidden>
+    <button class="modal-backdrop" type="button" data-close-skin-modal aria-label="피부진단 모달 닫기"></button>
+    <div class="modal-dialog chat-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="skinModalTitle">
+      <header class="modal-header chat-modal-header">
+        <div>
+          <p class="eyebrow">AI Skin Concierge</p>
+          <h2 id="skinModalTitle">채팅형 피부진단</h2>
+        </div>
+        <div class="chat-header-meta">
+          <div class="chat-progress" aria-label="진행률">
+            <span id="chatProgressLabel">0 / 11</span>
+            <strong id="chatProgressPercent">0%</strong>
+          </div>
+          <button class="icon-button" type="button" data-close-skin-modal aria-label="닫기">×</button>
+        </div>
+      </header>
+
+      <div class="chat-modal-body">
+        <aside class="chat-side-panel" aria-label="상담 요약">
+          <p class="eyebrow">Live Snapshot</p>
+          <h3>상담이 진행될수록 요약이 쌓입니다</h3>
+          <p>고객이 답한 내용은 OpenAI 분석 요청에 함께 전달됩니다.</p>
+          <div class="snapshot-list" id="snapshotList"></div>
+          <button class="secondary-button restart-button" type="button" id="restartChatButton">처음부터 다시</button>
+        </aside>
+
+        <section class="chat-stage" aria-label="AI 피부상담 채팅">
+          <div class="chat-thread" id="chatThread" aria-live="polite"></div>
+          <div class="typing-indicator" id="typingIndicator" hidden>
+            <span></span><span></span><span></span>
+            <p>AI 컨시어지가 입력 중</p>
+          </div>
+          <div class="chat-controls" id="chatControls"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <script src="./app.js" type="module"></script>
+</body>
+</html>

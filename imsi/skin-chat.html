@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>더뷰티 AI Skin Concierge | 모달 테스트</title>
+  <meta
+    name="description"
+    content="회의 전 테스트를 위해 채팅형 피부 상담 플로우를 모달로 띄워보는 전용 화면입니다."
+  />
+  <link rel="icon" type="image/png" href="./favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"
+  />
+  <link rel="stylesheet" href="./skin-chat-modal.css?v=20260331-modal-02" />
+</head>
+<body class="skin-chat-test-body">
+  <main class="skin-chat-test-shell">
+    <section class="skin-chat-test-hero">
+      <p class="skin-chat-test-eyebrow">Modal Preview Only</p>
+      <h1>AI Skin Concierge Test Screen</h1>
+      <p class="skin-chat-test-description">
+        홈에는 아직 붙이지 않고, 회의 전에 모달 사용감만 확인하는 전용 화면입니다. 페이지에 들어오면 모달이 바로 열리고, 닫은 뒤에도 다시 열 수 있습니다.
+      </p>
+      <div class="skin-chat-test-actions">
+        <button type="button" class="skin-chat-test-open" data-skin-chat-open>모달 다시 열기</button>
+        <a class="skin-chat-test-link" href="./skin-chat-flow.html" target="_blank" rel="noopener noreferrer">원본 화면 보기</a>
+      </div>
+    </section>
+
+    <section class="skin-chat-test-grid" aria-label="테스트 포인트">
+      <article class="skin-chat-test-card">
+        <span>Point 1</span>
+        <strong>메인 화면은 건드리지 않음</strong>
+        <p>현재 테스트는 이 페이지에서만 동작하고 홈이나 실제 진입 흐름에는 연결되지 않습니다.</p>
+      </article>
+      <article class="skin-chat-test-card">
+        <span>Point 2</span>
+        <strong>모달 안에서 전체 상담 플로우 확인</strong>
+        <p>질문, 사진 업로드, 결과 리포트, 구독 CTA까지 기존 프로토타입을 그대로 재사용합니다.</p>
+      </article>
+      <article class="skin-chat-test-card">
+        <span>Point 3</span>
+        <strong>회의 후 바로 옮길 수 있는 구조</strong>
+        <p>검토가 끝나면 원하는 위치에 같은 모달 런처만 붙이면 됩니다.</p>
+      </article>
+    </section>
+  </main>
+
+  <div
+    class="skin-chat-modal"
+    id="skinChatModal"
+    aria-hidden="true"
+    hidden
+    data-auto-open="true"
+    data-skin-chat-frame-src="./skin-chat-flow.html?embed=1"
+  >
+    <button type="button" class="skin-chat-modal__backdrop" data-skin-chat-close aria-label="AI 피부상담 닫기"></button>
+    <section class="skin-chat-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="skinChatModalTitle">
+      <div class="skin-chat-modal__chrome">
+        <div class="skin-chat-modal__copy">
+          <p class="skin-chat-modal__eyebrow">AI Skin Concierge</p>
+          <strong id="skinChatModalTitle">모달 테스트 화면</strong>
+        </div>
+        <div class="skin-chat-modal__actions">
+          <a class="skin-chat-modal__link" href="./skin-chat-flow.html" target="_blank" rel="noopener noreferrer">원본 화면 보기</a>
+          <button type="button" class="skin-chat-modal__close" data-skin-chat-close aria-label="AI 피부상담 닫기">닫기</button>
+        </div>
+      </div>
+      <iframe
+        id="skinChatModalFrame"
+        class="skin-chat-modal__frame"
+        title="더뷰티 AI 피부상담"
+        loading="lazy"
+        referrerpolicy="strict-origin-when-cross-origin"
+      ></iframe>
+    </section>
+  </div>
+
+  <script src="./skin-chat-modal.js?v=20260331-modal-02"></script>
+</body>
+</html>

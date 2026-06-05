@@ -1,0 +1,17 @@
+.env
+.env.local
+.env.*.local
+node_modules/
+.DS_Store
+*.log
+__pycache__/
+*.pyc
+
+# Local product/ingredient data can contain partner files and generated DB state.
+data/products.db*
+data/imports/*
+!data/imports/.gitkeep
+data/reports/*
+!data/reports/.gitkeep
+data/sources/*
+!data/sources/.gitkeep

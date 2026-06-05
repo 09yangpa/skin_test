@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>더뷰티 AI Skin Concierge | 채팅형 피부 상담 프로토타입</title>
+  <meta
+    name="description"
+    content="설문과 얼굴 사진 업로드를 통해 피부 타입, 고민, 톤 경향을 1차로 분석하고 맞춤형 제품 추천과 구독 구성을 제안하는 채팅형 프로토타입 화면입니다."
+  />
+  <link rel="icon" type="image/png" href="./favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"
+  />
+  <link rel="stylesheet" href="./skin-chat.css?v=20260331-prototype-01" />
+</head>
+<body class="skin-chat-body">
+  <div class="skin-chat-shell">
+    <header class="skin-chat-topbar">
+      <div class="skin-chat-topbar-copy">
+        <a class="skin-chat-home-link" href="./index.html">THE BEAUTY</a>
+        <p class="skin-chat-eyebrow">CHEONGNYANGNI EXPERIENCE PILOT</p>
+        <h1>AI Skin Concierge</h1>
+        <p class="skin-chat-topbar-description">
+          채팅처럼 가볍게 시작하고, 결과는 리포트처럼 명확하게 보여주는 온라인 1차 피부 컨설팅 프로토타입입니다.
+        </p>
+      </div>
+      <div class="skin-chat-stat-grid" aria-label="프로토타입 핵심 포인트">
+        <article class="skin-chat-stat-card">
+          <span>Flow</span>
+          <strong>3 min guided chat</strong>
+          <p>질문, 사진 업로드, 결과 리포트, 구독 제안까지 한 흐름으로 진행됩니다.</p>
+        </article>
+        <article class="skin-chat-stat-card">
+          <span>Hook</span>
+          <strong>Online first, offline deeper</strong>
+          <p>온라인으로 시작하고 오프라인 방문 시 더 정밀한 진단을 제공하는 구조입니다.</p>
+        </article>
+        <article class="skin-chat-stat-card">
+          <span>Offer</span>
+          <strong>KRW 30,000 subscription</strong>
+          <p>맞춤형 루틴 샘플과 정품 혼합 구성으로 월 구독 전환을 유도합니다.</p>
+        </article>
+      </div>
+    </header>
+
+    <main class="skin-chat-layout">
+      <aside class="skin-chat-rail" aria-label="서비스 개요">
+        <section class="rail-card rail-card-accent">
+          <p class="skin-chat-eyebrow">Why chat</p>
+          <h2>폼이 아니라 상담처럼 보이게</h2>
+          <ul class="rail-list">
+            <li>고객 입장에서는 부담 없이 시작할 수 있습니다.</li>
+            <li>브랜드 입장에서는 추천 흐름과 CTA를 통제하기 쉽습니다.</li>
+            <li>사진 업로드 직전까지 선택형 질문으로 이탈을 줄일 수 있습니다.</li>
+          </ul>
+        </section>
+
+        <section class="rail-card" aria-labelledby="snapshotTitle">
+          <div class="rail-head">
+            <p class="skin-chat-eyebrow">Live snapshot</p>
+            <h2 id="snapshotTitle">현재 상담 요약</h2>
+          </div>
+          <p class="rail-muted" id="snapshotStatus">아직 상담이 시작되지 않았습니다.</p>
+          <div class="snapshot-chip-grid" id="snapshotChips"></div>
+        </section>
+
+        <section class="rail-card">
+          <div class="rail-head">
+            <p class="skin-chat-eyebrow">Prototype goals</p>
+            <h2>결과 화면에서 바로 이어지는 행동</h2>
+          </div>
+          <div class="goal-stack">
+            <article>
+              <span>1</span>
+              <div>
+                <strong>맞춤 추천 확인</strong>
+                <p>피부 타입과 고민 기준으로 우선순위가 높은 제품을 노출합니다.</p>
+              </div>
+            </article>
+            <article>
+              <span>2</span>
+              <div>
+                <strong>월 구독 유도</strong>
+                <p>가격 대비 구성 가치를 직관적으로 보여줍니다.</p>
+              </div>
+            </article>
+            <article>
+              <span>3</span>
+              <div>
+                <strong>오프라인 방문 CTA</strong>
+                <p>정밀 진단과 컬러 매칭은 매장에서 더 정확하다고 자연스럽게 연결합니다.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+      </aside>
+
+      <section class="skin-chat-stage" aria-labelledby="chatStageTitle">
+        <div class="stage-head">
+          <div>
+            <p class="skin-chat-eyebrow">Guided conversation</p>
+            <h2 id="chatStageTitle">채팅형 피부 상담 화면</h2>
+            <p class="stage-head-copy">자유 입력보다 선택형 응답을 중심으로 설계해 전환 흐름을 안정적으로 유지합니다.</p>
+          </div>
+          <div class="chat-progress">
+            <div class="chat-progress-meta">
+              <span>Progress</span>
+              <strong id="chatProgressText">0 / 5</strong>
+            </div>
+            <div class="chat-progress-bar" aria-hidden="true">
+              <span id="chatProgressFill"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage-body">
+          <div class="chat-thread" id="chatThread" aria-live="polite"></div>
+          <div class="chat-controls" id="chatControls"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./skin-chat.js"></script>
+</body>
+</html>
