@@ -4,11 +4,50 @@
 
 ## 실행
 
+Node.js `22.5.0` 이상을 권장합니다. 이 앱은 로컬 SQLite 연결에 Node의 `node:sqlite` 모듈을 사용합니다.
+
 ```bash
 npm run dev
 ```
 
 브라우저에서 `http://localhost:3000`을 엽니다.
+
+## 다른 컴퓨터에서 로컬 실행
+
+이 저장소는 코드만 공유하고, 실제 API 키와 상품 DB는 각 컴퓨터에서 따로 준비하는 방식이 안전합니다.
+
+현재 컴퓨터에서 GitHub 저장소를 연결해 올릴 때:
+
+```bash
+git remote add origin https://github.com/YOUR_ID/YOUR_REPO.git
+git branch -M main
+git push -u origin main
+```
+
+다른 컴퓨터에서 받을 때:
+
+```bash
+git clone https://github.com/YOUR_ID/YOUR_REPO.git
+cd YOUR_REPO
+cp .env.example .env
+npm run dev
+```
+
+`.env`에는 각 컴퓨터에서 직접 OpenAI API 키를 넣습니다. `.env` 파일은 git에 올라가지 않습니다.
+
+```bash
+OPENAI_API_KEY=sk-your-key-here
+OPENAI_MODEL=gpt-4.1-mini
+PORT=3000
+```
+
+상품 추천 DB까지 같은 상태로 쓰려면 현재 컴퓨터의 `data/products.db`를 다른 컴퓨터의 같은 위치로 별도 복사합니다.
+
+```text
+data/products.db
+```
+
+DB를 복사하지 않아도 화면과 피부진단 API는 실행할 수 있지만, 기존 상품 전성분 기반 추천 데이터는 비어 있는 상태로 시작합니다. 다른 컴퓨터에서 관리자 화면(`/admin-import.html`)으로 엑셀을 다시 업로드해 DB를 새로 만들 수도 있습니다.
 
 ## 흐름
 
