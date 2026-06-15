@@ -422,7 +422,7 @@ function handleAnswer(question, option) {
 function showPhotoUploadStep() {
   updateProgress();
   showTyping(() => {
-    addBotMessage("좋아요. 이제 마지막 단계입니다. 정면 1장, 45도 측면 1장, 고민 부위 확대 1장까지 총 3장을 올려주시면 답변과 함께 실제 AI 분석을 진행할게요.", "Photo Check");
+    addBotMessage("좋아요. 이제 마지막 단계입니다. 사진은 선택사항이에요. 정면, 45도 측면, 고민 부위 확대 사진을 올리면 더 정밀하게 보고, 사진이 없으면 설문지를 기준으로 결과를 도출합니다.", "Photo Check");
     renderUploadControls();
   });
 }
@@ -432,21 +432,21 @@ function renderUploadControls() {
     <div class="upload-chat-panel">
       <label class="dropzone chat-dropzone" for="skinImages">
         <input id="skinImages" type="file" accept="image/*" multiple />
-        <strong>피부 분석용 사진 3장 업로드</strong>
-        <span>정면 얼굴 전체, 45도 측면, 고민 부위 확대 사진을 각각 1장씩 올려주세요.</span>
+        <strong>피부 분석용 사진 업로드 선택</strong>
+        <span>정확도를 높이려면 정면 얼굴 전체, 45도 측면, 고민 부위 확대 사진을 각각 1장씩 올려주세요. 사진은 저장되지 않습니다.</span>
       </label>
       <div class="photo-guide-grid">
-        <span><strong>1</strong> 정면 얼굴 전체</span>
-        <span><strong>2</strong> 좌/우 45도 측면</span>
-        <span><strong>3</strong> 모공·붉은기·트러블 등 고민 부위 확대</span>
+        <span><strong>1</strong> 정면 얼굴 전체 권장</span>
+        <span><strong>2</strong> 좌/우 45도 측면 권장</span>
+        <span><strong>3</strong> 모공·붉은기·트러블 등 고민 부위 확대 권장</span>
       </div>
+      <p class="photo-privacy-note">사진이 없어도 진단할 수 있습니다. 사진이 없을 경우 설문지를 기준으로 결과를 도출합니다. 업로드한 사진은 분석 요청에만 사용되며 서버에 저장되지 않습니다.</p>
       <div class="preview-grid" id="previewGrid"></div>
       <label class="checkbox-label consent-row">
         <input type="checkbox" id="consentInput" />
-        <span>이 결과가 의료 진단이 아닌 화장품 추천용 참고 정보임을 이해했습니다.</span>
+        <span>이 결과가 의료 진단이 아닌 화장품 추천용 참고 정보이며, 사진은 저장되지 않는다는 안내를 확인했습니다.</span>
       </label>
       <div class="modal-actions chat-action-row">
-        <button class="secondary-button" type="button" id="demoPhotoButton">샘플 3장으로 데모 결과 보기</button>
         <button class="primary-button" type="button" id="submitButton" disabled>AI 분석 시작</button>
       </div>
     </div>
@@ -454,16 +454,14 @@ function renderUploadControls() {
 
   const input = document.getElementById("skinImages");
   const submitButton = document.getElementById("submitButton");
-  const demoPhotoButton = document.getElementById("demoPhotoButton");
   const consentInput = document.getElementById("consentInput");
 
   input.addEventListener("change", handleImageChange);
   consentInput.addEventListener("change", updateSubmitState);
-  submitButton.addEventListener("click", () => requestDiagnosis(false));
-  demoPhotoButton.addEventListener("click", () => requestDiagnosis(true));
+  submitButton.addEventListener("click", requestDiagnosis);
 
   function updateSubmitState() {
-    submitButton.disabled = state.compressedImages.length !== 3 || !consentInput.checked;
+    submitButton.disabled = !consentInput.checked;
   }
 
   async function handleImageChange(event) {
@@ -485,35 +483,29 @@ function renderUploadControls() {
 
     state.answerLabels.photos = {
       label: "사진",
-      value: state.compressedImages.length ? `${state.compressedImages.length}/3장 업로드` : "미업로드"
+      value: state.compressedImages.length ? `${state.compressedImages.length}장 업로드` : "미업로드"
     };
     updateSnapshot();
     updateSubmitState();
     if (state.compressedImages.length && state.compressedImages.length < 3) {
-      addBotMessage(`현재 ${state.compressedImages.length}장 업로드됐어요. 정면, 측면, 고민 부위 확대까지 총 3장이 필요합니다.`);
+      addBotMessage(`현재 ${state.compressedImages.length}장 업로드됐어요. 3장을 모두 올리면 더 정밀하지만, 현재 사진만으로도 분석을 진행할 수 있습니다.`);
     }
   }
 }
 
-async function requestDiagnosis(useDemoImage) {
+async function requestDiagnosis() {
   const consentInput = document.getElementById("consentInput");
 
-  if (!useDemoImage && state.compressedImages.length !== 3) {
-    addBotMessage("분석을 위해 정면, 45도 측면, 고민 부위 확대 사진까지 총 3장을 올려주세요.");
-    return;
-  }
-
-  if (!useDemoImage && !consentInput.checked) {
+  if (!consentInput.checked) {
     addBotMessage("의료 진단이 아닌 화장품 추천용 참고 정보라는 안내에 동의해 주세요.");
     return;
   }
 
-  const images = useDemoImage
-    ? [createDemoImageDataUrl("FRONT"), createDemoImageDataUrl("SIDE"), createDemoImageDataUrl("CLOSE-UP")]
-    : state.compressedImages;
+  const images = state.compressedImages;
   analysisInFlight = true;
   chatControls.innerHTML = "";
-  addUserMessage(useDemoImage ? "데모 이미지로 분석해줘" : `사진 ${images.length}장으로 분석해줘`);
+  addUserMessage(images.length ? `사진 ${images.length}장으로 분석해줘` : "사진 없이 설문지만으로 분석해줘");
+  addBotMessage(getPhotoAnalysisMessage(images.length));
   renderLoadingMessage();
   updateProgress(true);
 
@@ -956,30 +948,19 @@ function compressImage(file, maxSize, quality) {
   });
 }
 
-function createDemoImageDataUrl(label = "DEMO") {
-  const canvas = document.createElement("canvas");
-  canvas.width = 420;
-  canvas.height = 420;
-  const context = canvas.getContext("2d");
-  const gradient = context.createLinearGradient(0, 0, 420, 420);
-  gradient.addColorStop(0, "#f6ddc9");
-  gradient.addColorStop(1, "#b8c9aa");
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, 420, 420);
-  context.fillStyle = "rgba(255, 250, 240, 0.72)";
-  context.beginPath();
-  context.ellipse(210, 210, 96, 132, 0, 0, Math.PI * 2);
-  context.fill();
-  context.fillStyle = "rgba(46, 80, 61, 0.48)";
-  context.font = "bold 24px sans-serif";
-  context.textAlign = "center";
-  context.fillText(`DEMO ${label}`, 210, 370);
-  return canvas.toDataURL("image/jpeg", 0.82);
-}
-
 function clampClientScore(value) {
   const number = Number(value || 0);
   return Math.max(0, Math.min(100, Math.round(number)));
+}
+
+function getPhotoAnalysisMessage(imageCount) {
+  if (!imageCount) {
+    return "사진이 없어 설문지를 기준으로 결과를 도출합니다. 사진은 저장되지 않습니다.";
+  }
+  if (imageCount < 3) {
+    return `업로드한 사진 ${imageCount}장을 참고하고, 부족한 부분은 설문지를 기준으로 보정해 결과를 도출합니다. 사진은 저장되지 않습니다.`;
+  }
+  return "업로드한 사진 3장을 함께 참고해 결과를 도출합니다. 사진은 저장되지 않습니다.";
 }
 
 function escapeHtml(value) {

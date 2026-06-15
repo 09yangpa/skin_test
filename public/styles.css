@@ -963,6 +963,17 @@ select {
   font-size: 1rem;
 }
 
+.photo-privacy-note {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(46, 80, 61, 0.12);
+  border-radius: 16px;
+  background: rgba(232, 240, 228, 0.74);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
 .consent-row {
   padding: 12px;
   border-radius: 16px;

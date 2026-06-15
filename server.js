@@ -119,26 +119,25 @@ async function handleSkinDiagnosis(request, response) {
   const payload = await readJsonBody(request, 8 * 1024 * 1024);
   const answers = payload.answers && typeof payload.answers === "object" ? payload.answers : {};
   const images = Array.isArray(payload.images) ? payload.images.slice(0, 3) : [];
-
-  if (images.length !== 3) {
-    return sendJson(response, 400, { error: "정면, 45도 측면, 고민 부위 확대 사진까지 총 3장을 업로드해 주세요." });
-  }
+  const analysisSourceNote = buildPhotoAnalysisNote(images.length);
 
   if (!process.env.OPENAI_API_KEY) {
-    const diagnosis = buildDemoDiagnosis(answers);
+    const diagnosis = buildDemoDiagnosis(answers, images.length);
     diagnosis.obnfType = calculateObnfType(answers, diagnosis);
     return sendJson(response, 200, {
       mode: "demo",
       diagnosis,
       recommendations: await buildProductRecommendations(answers, diagnosis),
-      note: "OPENAI_API_KEY가 없어 데모 결과를 반환했습니다. .env에 키를 넣으면 실제 OpenAI 분석으로 전환됩니다."
+      note: [analysisSourceNote, "OPENAI_API_KEY가 없어 데모 결과를 반환했습니다. .env에 키를 넣으면 실제 OpenAI 분석으로 전환됩니다."]
+        .filter(Boolean)
+        .join(" ")
     });
   }
 
   const content = [
     {
       type: "input_text",
-      text: buildPrompt(answers)
+      text: buildPrompt(answers, images.length)
     },
     ...images.map((imageUrl) => ({
       type: "input_image",
@@ -203,6 +202,7 @@ async function handleSkinDiagnosis(request, response) {
   sendJson(response, 200, {
     mode: "openai",
     diagnosis,
+    note: analysisSourceNote,
     recommendations: await buildProductRecommendations(answers, diagnosis)
   });
 }
@@ -287,9 +287,10 @@ async function handleProductImportStats(response) {
   }
 }
 
-function buildPrompt(answers) {
+function buildPrompt(answers, imageCount = 0) {
+  const sourceInstruction = buildPromptSourceInstruction(imageCount);
   return [
-    "아래 설문과 얼굴 사진을 바탕으로 한국어 피부 컨시어지 결과를 작성해줘.",
+    sourceInstruction,
     "의료 진단이 아니라 화장품/스킨케어 추천을 위한 1차 뷰티 상담으로만 표현해줘.",
     "피부질환명 단정, 치료 표현, 약 처방 표현은 피하고 필요한 경우 피부과 상담을 권유해줘.",
     "답변은 schema에 맞는 JSON만 반환해줘.",
@@ -298,16 +299,39 @@ function buildPrompt(answers) {
   ].join("\n");
 }
 
-function buildDemoDiagnosis(answers) {
+function buildPromptSourceInstruction(imageCount = 0) {
+  if (!imageCount) {
+    return "얼굴 사진이 제공되지 않았으므로 아래 설문 응답만 바탕으로 한국어 피부 컨시어지 결과를 작성해줘. 사진 관찰 표현은 쓰지 말고, 설문 기반 추정이라고 표현해줘.";
+  }
+  if (imageCount < 3) {
+    return `아래 설문과 업로드된 얼굴 사진 ${imageCount}장을 바탕으로 한국어 피부 컨시어지 결과를 작성해줘. 사진이 권장 3장보다 적으므로 보이지 않는 부위는 단정하지 말고 설문 기반으로 보정해줘.`;
+  }
+  return "아래 설문과 얼굴 사진 3장을 바탕으로 한국어 피부 컨시어지 결과를 작성해줘.";
+}
+
+function buildPhotoAnalysisNote(imageCount = 0) {
+  if (!imageCount) {
+    return "사진이 없어 설문지를 기준으로 결과를 도출합니다. 사진은 저장되지 않습니다.";
+  }
+  if (imageCount < 3) {
+    return `업로드한 사진 ${imageCount}장을 참고하고, 부족한 부분은 설문지를 기준으로 보정해 결과를 도출합니다. 사진은 저장되지 않습니다.`;
+  }
+  return "업로드한 사진 3장을 함께 참고해 결과를 도출합니다. 사진은 저장되지 않습니다.";
+}
+
+function buildDemoDiagnosis(answers, imageCount = 0) {
   const concern = answers.concern || "수분 밸런스";
   const sensitivity = answers.sensitivity || "보통";
+  const hasPhotos = imageCount > 0;
 
   return {
     profileTitle: `${concern} 중심의 수분-진정 밸런스 타입`,
     confidence: "medium",
     skinType: "복합성 또는 수분 부족형으로 추정",
     visibleSignals: [
-      "사진과 설문을 함께 보면 부위별 컨디션 차이가 있을 수 있습니다.",
+      hasPhotos
+        ? "사진과 설문을 함께 보면 부위별 컨디션 차이가 있을 수 있습니다."
+        : "사진이 없어 설문 응답을 기준으로 피부 컨디션을 추정합니다.",
       "세안 후 당김이나 오후 유분감이 동시에 나타나는 패턴을 우선 고려합니다.",
       "붉은기와 트러블 흔적은 자극을 줄인 루틴으로 천천히 관리하는 편이 좋습니다."
     ],
