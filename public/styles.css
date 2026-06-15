@@ -932,6 +932,37 @@ select {
   margin: 0;
 }
 
+.photo-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.photo-guide-grid span {
+  display: grid;
+  gap: 5px;
+  min-height: 76px;
+  padding: 12px;
+  border: 1px solid rgba(46, 80, 61, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 250, 240, 0.68);
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.photo-guide-grid strong {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--sage-deep);
+  color: var(--cream);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 1rem;
+}
+
 .consent-row {
   padding: 12px;
   border-radius: 16px;
@@ -1007,8 +1038,10 @@ select {
   }
 
   .choice-grid,
+  .photo-guide-grid,
   .chat-action-row {
     display: grid;
+    grid-template-columns: 1fr;
   }
 
   .choice-button {
@@ -1052,6 +1085,111 @@ select {
   color: var(--sage-deep);
   font-size: 0.82rem;
   font-weight: 800;
+}
+
+.obnf-card {
+  background:
+    linear-gradient(135deg, rgba(20, 36, 28, 0.96), rgba(46, 80, 61, 0.92)),
+    radial-gradient(circle at top right, rgba(215, 157, 113, 0.32), transparent 34%);
+  color: var(--cream);
+}
+
+.obnf-card p,
+.obnf-card .eyebrow {
+  color: rgba(255, 250, 240, 0.78);
+}
+
+.obnf-card .standard-source-note {
+  border-color: rgba(255, 250, 240, 0.14);
+  background: rgba(255, 250, 240, 0.1);
+  color: rgba(255, 250, 240, 0.76);
+}
+
+.obnf-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.obnf-card-head h3 {
+  color: var(--cream);
+}
+
+.obnf-code {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  min-width: 118px;
+  min-height: 88px;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 250, 240, 0.2);
+  border-radius: 24px;
+  background: rgba(255, 250, 240, 0.12);
+  color: #f8d7a4;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: clamp(2.4rem, 8vw, 4rem);
+  letter-spacing: 0.08em;
+}
+
+.obnf-axis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.obnf-axis {
+  padding: 13px;
+  border: 1px solid rgba(255, 250, 240, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 250, 240, 0.08);
+}
+
+.obnf-axis > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--cream);
+  font-weight: 800;
+}
+
+.obnf-axis > div:first-child span {
+  color: #f8d7a4;
+}
+
+.obnf-meter {
+  height: 7px;
+  margin: 10px 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.18);
+}
+
+.obnf-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f8d7a4, #d79d71);
+}
+
+.obnf-card .mini-tag-row span {
+  background: rgba(255, 250, 240, 0.12);
+  color: var(--cream);
+}
+
+@media (max-width: 640px) {
+  .obnf-card-head {
+    display: grid;
+  }
+
+  .obnf-code {
+    width: 100%;
+  }
+
+  .obnf-axis-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .routine-rec-list {

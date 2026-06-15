@@ -3,16 +3,21 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DatabaseSync } from "node:sqlite";
 import { spawn } from "node:child_process";
+import { MongoClient } from "mongodb";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const publicDir = resolve(__dirname, "public");
 const productDbPath = resolve(__dirname, "data/products.db");
 const importDir = resolve(__dirname, "data/imports");
-const port = Number(process.env.PORT || 3000);
 
 await loadDotEnv();
+
+const port = Number(process.env.PORT || 3000);
+const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || "";
+const mongoDbName = process.env.SKIN_MONGO_DB || "castshop_gift_test";
+const skinProductsCollection = process.env.SKIN_PRODUCTS_COLLECTION || "skin_products";
+let mongoClientPromise = null;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -70,12 +75,12 @@ const server = createServer(async (request, response) => {
     const url = new URL(request.url || "/", `http://${request.headers.host}`);
 
     if (request.method === "GET" && url.pathname === "/api/health") {
+      const productStatus = await getProductStatus();
       return sendJson(response, 200, {
         ok: true,
         hasOpenAIKey: Boolean(process.env.OPENAI_API_KEY),
         model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-        productDbReady: existsSync(productDbPath),
-        productCount: getProductCount()
+        ...productStatus
       });
     }
 
@@ -115,15 +120,17 @@ async function handleSkinDiagnosis(request, response) {
   const answers = payload.answers && typeof payload.answers === "object" ? payload.answers : {};
   const images = Array.isArray(payload.images) ? payload.images.slice(0, 3) : [];
 
-  if (!images.length) {
-    return sendJson(response, 400, { error: "얼굴 사진을 1장 이상 업로드해 주세요." });
+  if (images.length !== 3) {
+    return sendJson(response, 400, { error: "정면, 45도 측면, 고민 부위 확대 사진까지 총 3장을 업로드해 주세요." });
   }
 
   if (!process.env.OPENAI_API_KEY) {
+    const diagnosis = buildDemoDiagnosis(answers);
+    diagnosis.obnfType = calculateObnfType(answers, diagnosis);
     return sendJson(response, 200, {
       mode: "demo",
-      diagnosis: buildDemoDiagnosis(answers),
-      recommendations: buildProductRecommendations(answers, buildDemoDiagnosis(answers)),
+      diagnosis,
+      recommendations: await buildProductRecommendations(answers, diagnosis),
       note: "OPENAI_API_KEY가 없어 데모 결과를 반환했습니다. .env에 키를 넣으면 실제 OpenAI 분석으로 전환됩니다."
     });
   }
@@ -191,11 +198,12 @@ async function handleSkinDiagnosis(request, response) {
     console.error("Failed to parse model JSON", text, error);
     return sendJson(response, 502, { error: "AI 결과를 JSON으로 해석하지 못했습니다." });
   }
+  diagnosis.obnfType = calculateObnfType(answers, diagnosis);
 
   sendJson(response, 200, {
     mode: "openai",
     diagnosis,
-    recommendations: buildProductRecommendations(answers, diagnosis)
+    recommendations: await buildProductRecommendations(answers, diagnosis)
   });
 }
 
@@ -317,6 +325,126 @@ function buildDemoDiagnosis(answers) {
   };
 }
 
+function calculateObnfType(answers, diagnosis = {}) {
+  const text = [
+    answers.gender,
+    answers.ageRange,
+    answers.afterCleanse,
+    answers.oilTiming,
+    answers.concern,
+    answers.sensitivity,
+    answers.breakoutFrequency,
+    answers.texture,
+    answers.shavingMakeupIrritation,
+    answers.sunExposure,
+    answers.preferredTexture,
+    answers.avoidPreference,
+    answers.goal,
+    diagnosis.profileTitle,
+    diagnosis.skinType,
+    ...(diagnosis.visibleSignals || []),
+    ...(diagnosis.priorityConcerns || []),
+    ...(diagnosis.ingredientFocus || []),
+    ...(diagnosis.avoidOrCaution || [])
+  ].filter(Boolean).join(" ");
+
+  const oilScore = clampScore(
+    38
+    + scoreIf(text, /전체적으로 번들|오전부터|피지 조절|모공과 피지/, 24)
+    + scoreIf(text, /T존만 번들|점심 이후|트러블|운동\/땀|유분|피지|모공|번들/, 16)
+    + scoreIf(text, /10대|20대/, 6)
+    - scoreIf(text, /많이 당긴다|수분 부족|속당김|거의 없다|각질이 잘 뜬다|건조/, 22)
+    - scoreIf(text, /리치한 크림/, 6)
+  );
+
+  const sensitivityScore = clampScore(
+    30
+    + scoreIf(text, /높음|붉은기|예민|민감|따갑|면도 자극|둘 다 있다/, 30)
+    + scoreIf(text, /보통|가끔|오돌토돌|거칠|각질|메이크업 자극|강한 향/, 14)
+    + scoreIf(text, /많이 당긴다|장벽|진정|자극|스크럽|알코올|향료/, 12)
+    - scoreIf(text, /낮음|거의 없어요|특별히 없다|큰 변화 없다/, 18)
+  );
+
+  const pigmentScore = clampScore(
+    24
+    + scoreIf(text, /칙칙함|톤 불균형|톤 개선|브라이트|미백|색소|자국/, 32)
+    + scoreIf(text, /트러블과 자국|야외 활동이 많다|하루 1~2시간|운동\/땀/, 16)
+    + scoreIf(text, /30대|40대|50대/, 8)
+    - scoreIf(text, /대부분 실내/, 8)
+  );
+
+  const lineScore = clampScore(
+    20
+    + scoreIf(text, /50대/, 42)
+    + scoreIf(text, /40대/, 34)
+    + scoreIf(text, /30대/, 20)
+    + scoreIf(text, /탄력|노화|주름|라인|리프팅|아데노신|펩타이드|10분 이상/, 24)
+    + scoreIf(text, /야외 활동이 많다|운동\/땀/, 8)
+    - scoreIf(text, /10대|20대/, 12)
+  );
+
+  const code = [
+    oilScore >= 50 ? "O" : "X",
+    sensitivityScore >= 50 ? "S" : "B",
+    pigmentScore >= 50 ? "P" : "N",
+    lineScore >= 50 ? "L" : "F"
+  ].join("");
+
+  const axes = [
+    buildObnfAxis("oil", code[0], oilScore, "O", "X", "유분/피지", "유분과 피지 분비가 빠르게 올라오는 편", "유분보다 건조/수분 부족 신호가 더 큰 편"),
+    buildObnfAxis("barrier", code[1], sensitivityScore, "S", "B", "민감/장벽", "민감 반응과 장벽 부담을 우선 관리", "장벽 반응이 비교적 안정적인 편"),
+    buildObnfAxis("pigment", code[2], pigmentScore, "P", "N", "톤/색소", "톤, 자국, 색소 균일감 관리 우선", "색소보다 수분/피지/장벽 균형이 우선"),
+    buildObnfAxis("firmness", code[3], lineScore, "L", "F", "탄력/라인", "탄력, 주름, 라인 케어 우선", "탄력은 예방 중심으로 관리")
+  ];
+
+  return {
+    code,
+    title: `${code} 타입`,
+    basis: "설문 답변과 AI 리포트 키워드를 함께 반영한 내부 추천 지표",
+    summary: buildObnfSummary(code),
+    axes,
+    routineFocus: buildObnfRoutineFocus(code)
+  };
+}
+
+function scoreIf(text, pattern, value) {
+  return pattern.test(text) ? value : 0;
+}
+
+function clampScore(value) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function buildObnfAxis(key, letter, score, activeLetter, inactiveLetter, label, activeMeaning, inactiveMeaning) {
+  const active = letter === activeLetter;
+  return {
+    key,
+    letter,
+    opposite: active ? inactiveLetter : activeLetter,
+    label,
+    score,
+    meaning: active ? activeMeaning : inactiveMeaning
+  };
+}
+
+function buildObnfSummary(code) {
+  const parts = [];
+  parts.push(code[0] === "O" ? "유분/피지 활성 신호가 있어 산뜻한 밸런스가 중요합니다." : "유분보다 수분 유지와 보호막 보완이 더 중요합니다.");
+  parts.push(code[1] === "S" ? "민감·장벽 반응이 있어 저자극 루틴을 우선합니다." : "장벽 반응은 비교적 안정적으로 보고 기능성 선택지를 조금 열어둘 수 있습니다.");
+  parts.push(code[2] === "P" ? "톤, 자국, 색소 균일감 케어를 함께 봅니다." : "색소보다는 현재 컨디션 균형을 먼저 맞추는 쪽으로 봅니다.");
+  parts.push(code[3] === "L" ? "탄력/라인 케어 비중을 높입니다." : "탄력은 고강도보다 예방과 기본 보습 중심으로 관리합니다.");
+  return parts.join(" ");
+}
+
+function buildObnfRoutineFocus(code) {
+  const focus = [];
+  focus.push(code[0] === "O" ? "가벼운 수분 제형과 피지 밸런스 성분 우선" : "보습 지속력과 장벽 크림 우선");
+  focus.push(code[1] === "S" ? "향료, 산 성분, 레티노이드는 천천히 도입" : "피부 반응을 보며 기능성 성분 단계적 추가");
+  focus.push(code[2] === "P" ? "나이아신아마이드, 비타민 계열, 선케어 연결" : "톤 케어보다 수분/장벽/피지 기본기 우선");
+  focus.push(code[3] === "L" ? "펩타이드, 아데노신, 고보습 탄력 루틴 검토" : "과한 안티에이징보다 데일리 예방 케어");
+  return focus;
+}
+
 function extractOutputText(result) {
   if (typeof result.output_text === "string") {
     return result.output_text;
@@ -333,66 +461,121 @@ function extractOutputText(result) {
   return chunks.join("\n").trim();
 }
 
-function getProductCount() {
-  if (!existsSync(productDbPath)) return 0;
-  const db = new DatabaseSync(productDbPath, { readOnly: true });
-  try {
-    return Number(db.prepare("SELECT COUNT(*) AS count FROM products WHERE recommendation_ready = 1").get().count || 0);
-  } finally {
-    db.close();
+async function getMongoDb() {
+  if (!mongoUri) return null;
+  if (!mongoClientPromise) {
+    const client = new MongoClient(mongoUri, {
+      serverSelectionTimeoutMS: 5000
+    });
+    mongoClientPromise = client.connect();
   }
+  const client = await mongoClientPromise;
+  return client.db(mongoDbName);
 }
 
-function loadProductsFromDb() {
-  if (!existsSync(productDbPath)) return [];
-
-  const db = new DatabaseSync(productDbPath, { readOnly: true });
+async function getProductStatus() {
   try {
-    const products = db.prepare(
-      `SELECT id, brand, product_name, price, price_tier, category, volume,
-              ingredients_raw, benefit_tags, caution_tags, usage, caution_text
-         FROM products
-        WHERE recommendation_ready = 1`
-    ).all();
-    const ingredientRows = db.prepare(
-      `SELECT product_id, ingredient_name
-         FROM product_ingredients
-        ORDER BY product_id, ingredient_order`
-    ).all();
-    const ingredientsByProduct = new Map();
-    for (const row of ingredientRows) {
-      if (!ingredientsByProduct.has(row.product_id)) {
-        ingredientsByProduct.set(row.product_id, []);
-      }
-      ingredientsByProduct.get(row.product_id).push(row.ingredient_name);
+    const db = await getMongoDb();
+    if (!db) {
+      return {
+        productDbProvider: "mongodb",
+        productDbReady: false,
+        productDbError: "MONGO_URI가 설정되지 않았습니다.",
+        productCount: 0,
+        productDbName: mongoDbName,
+        productCollection: skinProductsCollection,
+        localSqliteReady: existsSync(productDbPath)
+      };
     }
-
-    return products.map((product) => ({
-      ...product,
-      price: Number(product.price || 0),
-      benefit_tags: safeJsonArray(product.benefit_tags),
-      caution_tags: safeJsonArray(product.caution_tags),
-      ingredients: ingredientsByProduct.get(product.id) || []
-    }));
-  } finally {
-    db.close();
+    const productCount = await db.collection(skinProductsCollection).countDocuments({ recommendationReady: true });
+    return {
+      productDbProvider: "mongodb",
+      productDbReady: true,
+      productCount,
+      productDbName: mongoDbName,
+      productCollection: skinProductsCollection,
+      localSqliteReady: existsSync(productDbPath)
+    };
+  } catch (error) {
+    return {
+      productDbProvider: "mongodb",
+      productDbReady: false,
+      productDbError: error.message || "MongoDB 상품 DB 연결 실패",
+      productCount: 0,
+      productDbName: mongoDbName,
+      productCollection: skinProductsCollection,
+      localSqliteReady: existsSync(productDbPath)
+    };
   }
 }
 
-function safeJsonArray(value) {
-  try {
-    const parsed = JSON.parse(value || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+async function loadProductsFromDb() {
+  const db = await getMongoDb();
+  if (!db) return [];
+
+  const products = await db.collection(skinProductsCollection)
+    .find({ recommendationReady: true })
+    .project({
+      _id: 1,
+      sqliteId: 1,
+      brand: 1,
+      productCode: 1,
+      productName: 1,
+      barcode: 1,
+      price: 1,
+      priceTier: 1,
+      category: 1,
+      volume: 1,
+      ingredientsRaw: 1,
+      benefitTags: 1,
+      cautionTags: 1,
+      usage: 1,
+      cautionText: 1,
+      ingredientNames: 1,
+      ingredients: 1,
+      matchedIngredients: 1
+    })
+    .toArray();
+
+  return products.map(normalizeMongoProduct);
 }
 
-function buildProductRecommendations(answers, diagnosis) {
-  const products = loadProductsFromDb();
+function normalizeMongoProduct(product) {
+  const ingredientNames = Array.isArray(product.ingredientNames)
+    ? product.ingredientNames
+    : Array.isArray(product.ingredients)
+      ? product.ingredients.map((item) => typeof item === "string" ? item : item?.name).filter(Boolean)
+      : [];
+
+  return {
+    id: product.sqliteId || product._id,
+    brand: product.brand || "",
+    product_code: product.productCode || "",
+    product_name: product.productName || "",
+    barcode: product.barcode || "",
+    price: Number(product.price || 0),
+    price_tier: product.priceTier || "",
+    category: product.category || "etc",
+    volume: product.volume || "",
+    ingredients_raw: product.ingredientsRaw || "",
+    benefit_tags: asArray(product.benefitTags),
+    caution_tags: asArray(product.cautionTags),
+    usage: product.usage || "",
+    caution_text: product.cautionText || "",
+    ingredients: ingredientNames,
+    matchedIngredients: asArray(product.matchedIngredients)
+  };
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+async function buildProductRecommendations(answers, diagnosis) {
+  const products = await loadProductsFromDb();
   if (!products.length) {
     return {
-      summary: "추천 DB에 전성분 상품이 아직 없습니다.",
+      summary: "MongoDB 추천 컬렉션에 전성분 상품이 아직 없거나 연결되지 않았습니다.",
       profile: buildRecommendationProfile(answers, diagnosis),
       routine: [],
       priceTiers: [],

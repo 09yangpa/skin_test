@@ -422,7 +422,7 @@ function handleAnswer(question, option) {
 function showPhotoUploadStep() {
   updateProgress();
   showTyping(() => {
-    addBotMessage("좋아요. 이제 마지막 단계입니다. 얼굴 사진 1~3장을 올려주시면, 지금까지의 답변과 함께 실제 AI 분석을 진행할게요.", "Photo Check");
+    addBotMessage("좋아요. 이제 마지막 단계입니다. 정면 1장, 45도 측면 1장, 고민 부위 확대 1장까지 총 3장을 올려주시면 답변과 함께 실제 AI 분석을 진행할게요.", "Photo Check");
     renderUploadControls();
   });
 }
@@ -432,16 +432,21 @@ function renderUploadControls() {
     <div class="upload-chat-panel">
       <label class="dropzone chat-dropzone" for="skinImages">
         <input id="skinImages" type="file" accept="image/*" multiple />
-        <strong>정면 또는 측면 얼굴 사진 업로드</strong>
-        <span>최대 3장까지 가능하고, 브라우저에서 먼저 압축한 뒤 서버로 보냅니다.</span>
+        <strong>피부 분석용 사진 3장 업로드</strong>
+        <span>정면 얼굴 전체, 45도 측면, 고민 부위 확대 사진을 각각 1장씩 올려주세요.</span>
       </label>
+      <div class="photo-guide-grid">
+        <span><strong>1</strong> 정면 얼굴 전체</span>
+        <span><strong>2</strong> 좌/우 45도 측면</span>
+        <span><strong>3</strong> 모공·붉은기·트러블 등 고민 부위 확대</span>
+      </div>
       <div class="preview-grid" id="previewGrid"></div>
       <label class="checkbox-label consent-row">
         <input type="checkbox" id="consentInput" />
         <span>이 결과가 의료 진단이 아닌 화장품 추천용 참고 정보임을 이해했습니다.</span>
       </label>
       <div class="modal-actions chat-action-row">
-        <button class="secondary-button" type="button" id="demoPhotoButton">사진 없이 데모 결과 보기</button>
+        <button class="secondary-button" type="button" id="demoPhotoButton">샘플 3장으로 데모 결과 보기</button>
         <button class="primary-button" type="button" id="submitButton" disabled>AI 분석 시작</button>
       </div>
     </div>
@@ -458,7 +463,7 @@ function renderUploadControls() {
   demoPhotoButton.addEventListener("click", () => requestDiagnosis(true));
 
   function updateSubmitState() {
-    submitButton.disabled = !state.compressedImages.length || !consentInput.checked;
+    submitButton.disabled = state.compressedImages.length !== 3 || !consentInput.checked;
   }
 
   async function handleImageChange(event) {
@@ -480,18 +485,21 @@ function renderUploadControls() {
 
     state.answerLabels.photos = {
       label: "사진",
-      value: state.compressedImages.length ? `${state.compressedImages.length}장 업로드` : "미업로드"
+      value: state.compressedImages.length ? `${state.compressedImages.length}/3장 업로드` : "미업로드"
     };
     updateSnapshot();
     updateSubmitState();
+    if (state.compressedImages.length && state.compressedImages.length < 3) {
+      addBotMessage(`현재 ${state.compressedImages.length}장 업로드됐어요. 정면, 측면, 고민 부위 확대까지 총 3장이 필요합니다.`);
+    }
   }
 }
 
 async function requestDiagnosis(useDemoImage) {
   const consentInput = document.getElementById("consentInput");
 
-  if (!useDemoImage && !state.compressedImages.length) {
-    addBotMessage("분석을 위해 얼굴 사진을 1장 이상 올려주세요.");
+  if (!useDemoImage && state.compressedImages.length !== 3) {
+    addBotMessage("분석을 위해 정면, 45도 측면, 고민 부위 확대 사진까지 총 3장을 올려주세요.");
     return;
   }
 
@@ -500,7 +508,9 @@ async function requestDiagnosis(useDemoImage) {
     return;
   }
 
-  const images = useDemoImage ? [createDemoImageDataUrl()] : state.compressedImages;
+  const images = useDemoImage
+    ? [createDemoImageDataUrl("FRONT"), createDemoImageDataUrl("SIDE"), createDemoImageDataUrl("CLOSE-UP")]
+    : state.compressedImages;
   analysisInFlight = true;
   chatControls.innerHTML = "";
   addUserMessage(useDemoImage ? "데모 이미지로 분석해줘" : `사진 ${images.length}장으로 분석해줘`);
@@ -569,6 +579,7 @@ function renderResult(diagnosis, mode, note, recommendations) {
       </article>
 
       ${note ? `<article class="result-card"><p>${escapeHtml(note)}</p></article>` : ""}
+      ${renderObnfCard(diagnosis.obnfType)}
       ${renderListCard("Visible Signals", "사진/설문에서 본 신호", diagnosis.visibleSignals)}
       ${renderRoutineCard(diagnosis.routine)}
       ${renderListCard("Ingredient Focus", "추천 성분 방향", diagnosis.ingredientFocus)}
@@ -591,6 +602,47 @@ function renderResult(diagnosis, mode, note, recommendations) {
   `;
   chatThread.appendChild(row);
   scrollToBottom();
+}
+
+function renderObnfCard(obnfType) {
+  if (!obnfType?.code) {
+    return "";
+  }
+
+  const axes = Array.isArray(obnfType.axes) ? obnfType.axes : [];
+  return `
+    <article class="result-card obnf-card">
+      <p class="eyebrow">OBNF Skin Code</p>
+      <div class="obnf-card-head">
+        <div>
+          <h3>${escapeHtml(obnfType.title || `${obnfType.code} 타입`)}</h3>
+          <p>${escapeHtml(obnfType.summary || "")}</p>
+        </div>
+        <strong class="obnf-code">${escapeHtml(obnfType.code)}</strong>
+      </div>
+      <p class="standard-source-note">${escapeHtml(obnfType.basis || "설문과 이미지 분석을 함께 반영한 내부 추천 지표입니다.")}</p>
+      <div class="obnf-axis-grid">
+        ${axes.map((axis) => {
+          const score = clampClientScore(axis.score);
+          return `
+            <section class="obnf-axis">
+              <div>
+                <strong>${escapeHtml(axis.letter)} · ${escapeHtml(axis.label)}</strong>
+                <span>${score}점</span>
+              </div>
+              <div class="obnf-meter" aria-hidden="true"><i style="width: ${score}%"></i></div>
+              <p>${escapeHtml(axis.meaning)}</p>
+            </section>
+          `;
+        }).join("")}
+      </div>
+      ${Array.isArray(obnfType.routineFocus) && obnfType.routineFocus.length ? `
+        <div class="mini-tag-row">
+          ${obnfType.routineFocus.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+        </div>
+      ` : ""}
+    </article>
+  `;
 }
 
 function renderRecommendationSection(recommendations) {
@@ -904,7 +956,7 @@ function compressImage(file, maxSize, quality) {
   });
 }
 
-function createDemoImageDataUrl() {
+function createDemoImageDataUrl(label = "DEMO") {
   const canvas = document.createElement("canvas");
   canvas.width = 420;
   canvas.height = 420;
@@ -921,8 +973,13 @@ function createDemoImageDataUrl() {
   context.fillStyle = "rgba(46, 80, 61, 0.48)";
   context.font = "bold 24px sans-serif";
   context.textAlign = "center";
-  context.fillText("DEMO SKIN PHOTO", 210, 370);
+  context.fillText(`DEMO ${label}`, 210, 370);
   return canvas.toDataURL("image/jpeg", 0.82);
+}
+
+function clampClientScore(value) {
+  const number = Number(value || 0);
+  return Math.max(0, Math.min(100, Math.round(number)));
 }
 
 function escapeHtml(value) {
