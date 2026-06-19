@@ -1,31 +1,31 @@
-const skinQuestions = [
-  {
+const skinQuestionMap = {
+  gender: {
     id: "gender",
     label: "기본 정보",
-    prompt: "먼저 추천 루틴의 방향을 잡기 위해 성별을 여쭤볼게요. 어떤 쪽에 가장 가까우세요?",
+    prompt: "반가워요! 가장 만족스러운 루틴을 설계하기 위해, 고객님의 성별을 선택해 주세요.",
     ack: {
-      male: "좋아요. 너무 복잡하지 않으면서 효과가 보이는 루틴도 함께 고려할게요.",
-      female: "좋아요. 피부 고민별로 단계 조합을 조금 더 섬세하게 볼게요.",
-      other: "좋아요. 성별 고정값보다 루틴 성향과 피부 상태를 중심으로 보겠습니다.",
+      male: "좋아요. 사용하기 편하면서도 효과가 보이는 루틴으로 설계해볼게요.",
+      female: "좋아요. 피부 고민별 단계 조합까지 섬세하게 반영하겠습니다.",
+      other: "좋아요. 성별 고정값보다 피부 특성과 루틴 성향을 중심으로 보겠습니다.",
       skip: "괜찮아요. 답변해주신 피부 상태 중심으로 추천하겠습니다."
     },
     options: [
       { value: "남성", text: "남성", key: "male" },
       { value: "여성", text: "여성", key: "female" },
       { value: "기타/직접 선택 안 함", text: "기타 / 선택 안 함", key: "other" },
-      { value: "응답하지 않음", text: "넘어갈게요", key: "skip" }
+      { value: "응답하지 않음", text: "답변하지 않고 건너뛰기", key: "skip" }
     ]
   },
-  {
+  ageRange: {
     id: "ageRange",
     label: "나이대",
-    prompt: "나이대는 어떻게 되세요? 피부 고민의 우선순위를 잡는 데 도움이 됩니다.",
+    prompt: "현재 나이대는 어떻게 되시나요? 연령대별 피부 재생 주기에 맞춘 최적의 솔루션을 찾아드려요.",
     ack: {
-      teen: "피지, 트러블, 자극 부담을 중심으로 볼게요.",
-      twenties: "피지/트러블과 수분 밸런스를 같이 보겠습니다.",
-      thirties: "수분, 장벽, 초기 탄력 고민까지 함께 보겠습니다.",
-      forties: "장벽, 탄력, 톤 균일감을 함께 반영하겠습니다.",
-      fifties: "보습 밀도와 탄력 케어 비중을 높여서 볼게요."
+      teen: "A코스로 볼게요. 피지 제어와 트러블 집중 케어 쪽을 먼저 확인하겠습니다.",
+      twenties: "A코스로 볼게요. 피지, 트러블, 유수분 밸런스를 중심으로 보겠습니다.",
+      thirties: "B코스로 볼게요. 장벽 강화와 초기 안티에이징 관점을 함께 반영하겠습니다.",
+      forties: "B코스로 볼게요. 장벽, 탄력, 톤 균일감을 함께 살피겠습니다.",
+      fifties: "B코스로 볼게요. 보습 밀도와 탄력 케어 비중을 높여 보겠습니다."
     },
     options: [
       { value: "10대", text: "10대", key: "teen" },
@@ -35,224 +35,149 @@ const skinQuestions = [
       { value: "50대 이상", text: "50대 이상", key: "fifties" }
     ]
   },
-  {
-    id: "routineStyle",
-    label: "루틴 성향",
-    prompt: "평소 스킨케어는 어떤 스타일이 가장 편하세요?",
+  youngConcern: {
+    id: "youngConcern",
+    label: "A코스 · 주요 고민",
+    prompt: "지금 가장 해결하고 싶은 피부 고민은 무엇인가요?",
     ack: {
-      allinone: "올인원/단순 루틴 중심으로 제품 수를 줄여볼게요.",
-      simple: "핵심 2~3단계 안에서 효율적인 조합을 찾겠습니다.",
-      balanced: "너무 많지도 적지도 않은 기본 루틴으로 보겠습니다.",
-      layered: "단계별로 다양하게 시도할 수 있는 조합도 열어둘게요."
+      trouble: "트러블과 붉은 자국을 진정 중심으로 보겠습니다.",
+      pore: "모공과 과도한 피지를 산뜻한 밸런스 관점으로 보겠습니다.",
+      tone: "칙칙함과 생기 부족을 수분감과 톤 균일감으로 함께 보겠습니다.",
+      dry: "속당김 신호가 크므로 수분 유지와 장벽 보완을 우선하겠습니다."
     },
     options: [
-      { value: "올인원처럼 한 번에 끝내고 싶다", text: "올인원이 좋아요", key: "allinone" },
-      { value: "2~3단계 정도면 좋다", text: "간단한 2~3단계", key: "simple" },
-      { value: "기본 루틴은 괜찮다", text: "기본 루틴 OK", key: "balanced" },
-      { value: "여러 단계도 시도해보고 싶다", text: "여러 단계도 좋아요", key: "layered" }
+      { value: "갑작스러운 트러블과 붉은 자국", text: "갑작스러운 트러블과 붉은 자국", key: "trouble" },
+      { value: "넓어지는 모공과 과도한 피지", text: "넓어지는 모공과 과도한 피지", key: "pore" },
+      { value: "푸석하고 칙칙한 피부 톤", text: "푸석하고 칙칙한 피부 톤", key: "tone" },
+      { value: "세안 후 유독 심한 속당김", text: "세안 후 유독 심한 속당김", key: "dry" }
     ]
   },
-  {
-    id: "routineTime",
-    label: "관리 시간",
-    prompt: "아침이나 저녁에 스킨케어에 쓸 수 있는 시간은 어느 정도인가요?",
+  youngOilTiming: {
+    id: "youngOilTiming",
+    label: "A코스 · 유분 올라오는 시간",
+    prompt: "일상생활 중, 피부에 기름기(유분)가 돌기 시작하는 때는 언제인가요?",
     ack: {
-      one: "정말 빠른 루틴으로 압축해볼게요.",
-      three: "3분 안에 끝나는 현실적인 루틴으로 보겠습니다.",
-      five: "핵심 제품을 나눠 바르는 루틴도 가능하겠어요.",
-      ten: "집중 케어 제품까지 포함해볼 수 있겠습니다."
+      early: "오전부터 빠른 유분 신호가 있어 산뜻한 오일컨트롤을 우선하겠습니다.",
+      afternoon: "오후 유분 패턴이면 유수분 밸런스 중심으로 보겠습니다.",
+      dry: "유분이 적거나 늦게 올라오면 보습과 장벽을 더 중요하게 보겠습니다."
     },
     options: [
-      { value: "1분 이하", text: "1분 이하", key: "one" },
-      { value: "3분 정도", text: "3분 정도", key: "three" },
-      { value: "5분 정도", text: "5분 정도", key: "five" },
-      { value: "10분 이상도 가능", text: "10분 이상 가능", key: "ten" }
+      { value: "오전부터 금방", text: "오전부터 금방", key: "early" },
+      { value: "점심 지나서 오후쯤", text: "점심 지나서 오후쯤", key: "afternoon" },
+      { value: "저녁이나 밤늦게쯤 / 유분이 거의 없음", text: "저녁이나 밤늦게쯤 / 유분이 거의 없음", key: "dry" }
     ]
   },
-  {
+  matureConcern: {
+    id: "matureConcern",
+    label: "B코스 · 주요 고민",
+    prompt: "지금 가장 해결하고 싶은 피부 고민은 무엇인가요?",
+    ack: {
+      aging: "탄력과 미세 주름 신호를 얼리 안티에이징 관점으로 보겠습니다.",
+      sensitive: "예민함과 장벽 복구를 가장 우선으로 보겠습니다.",
+      pigment: "잡티, 기미, 칙칙함은 광채와 톤 균일감 방향으로 보겠습니다.",
+      dry: "극심한 건조감은 깊은 보습과 장벽 강화 중심으로 보겠습니다."
+    },
+    options: [
+      { value: "탄력 저하와 미세한 주름", text: "탄력 저하와 미세한 주름", key: "aging" },
+      { value: "쉽게 붉어지고 따가운 예민함", text: "쉽게 붉어지고 따가운 예민함", key: "sensitive" },
+      { value: "짙어지는 잡티와 기미, 칙칙한 톤", text: "짙어지는 잡티와 기미, 칙칙한 톤", key: "pigment" },
+      { value: "아무리 발라도 해소되지 않는 극심한 건조함", text: "아무리 발라도 해소되지 않는 극심한 건조함", key: "dry" }
+    ]
+  },
+  matureRecovery: {
+    id: "matureRecovery",
+    label: "B코스 · 피부 회복력",
+    prompt: "아침에 생긴 베개 자국이 늦게까지 남아있거나, 환절기마다 피부가 확 뒤집어지시나요?",
+    ack: {
+      slow: "피부 회복 속도가 느린 편으로 보고 탄력과 장벽 케어를 강화하겠습니다.",
+      seasonal: "컨디션과 계절 영향을 받는 피부로 보고 안정화 루틴을 함께 잡겠습니다.",
+      fast: "회복력이 좋은 편이라 기본 장벽을 유지하면서 고민 성분을 조합하겠습니다."
+    },
+    options: [
+      { value: "피부 회복이 느리다고 확연히 느껴요", text: "네, 예전보다 피부 회복이 느리다고 확연히 느껴요", key: "slow" },
+      { value: "컨디션이나 계절에 따라 가끔 그래요", text: "컨디션이나 계절에 따라 가끔 그래요", key: "seasonal" },
+      { value: "아직은 탄탄하고 회복이 빠른 편이에요", text: "아니요, 아직은 탄탄하고 회복이 빠른 편이에요", key: "fast" }
+    ]
+  },
+  afterCleanse: {
     id: "afterCleanse",
     label: "세안 후 느낌",
-    prompt: "세안하고 30분 정도 지나면 피부가 어떤 느낌에 가장 가까우세요?",
+    prompt: "세안 후 아무것도 바르지 않고 30분이 지났을 때, 피부 상태는 어떤가요?",
     ack: {
-      tight: "속당김 신호를 우선 체크해볼게요.",
-      stable: "큰 변화가 없다면 다른 신호를 더 섬세하게 볼게요.",
-      tzone: "T존 중심 유분 패턴도 같이 보겠습니다.",
-      oily: "전체 유분 밸런스를 주요 포인트로 잡아볼게요."
+      tight: "세안 후 당김이 있어 수분 유지력과 장벽 컨디션을 함께 보겠습니다.",
+      stable: "편안한 상태라면 주요 고민과 루틴 성향을 더 중심으로 보겠습니다.",
+      tzone: "T존 중심 유분 패턴은 복합성 밸런스로 반영하겠습니다.",
+      oily: "전체 유분이 올라오는 편이면 피지 밸런스와 산뜻한 마무리를 보겠습니다."
     },
     options: [
-      { value: "많이 당긴다", text: "당기고 건조해요", key: "tight" },
-      { value: "큰 변화 없다", text: "큰 변화 없어요", key: "stable" },
-      { value: "T존만 번들거린다", text: "T존만 번들거려요", key: "tzone" },
-      { value: "전체적으로 번들거린다", text: "전체적으로 번들거려요", key: "oily" }
+      { value: "전체적으로 당기고 건조해요", text: "전체적으로 당기고 건조해요", key: "tight" },
+      { value: "당김이나 번들거림 없이 편안해요", text: "당김이나 번들거림 없이 편안해요", key: "stable" },
+      { value: "T존만 번들거려요", text: "T존(이마, 코)만 번들거려요", key: "tzone" },
+      { value: "얼굴 전체가 번들거리고 유분이 올라와요", text: "얼굴 전체가 번들거리고 유분이 올라와요", key: "oily" }
     ]
   },
-  {
-    id: "oilTiming",
-    label: "유분 올라오는 시간",
-    prompt: "오후가 되면 유분감은 언제부터 눈에 띄나요?",
+  routineStyle: {
+    id: "routineStyle",
+    label: "루틴 성향",
+    prompt: "평소 어떤 스타일의 스킨케어가 가장 편하게 느껴지시나요?",
     ack: {
-      early: "유분 상승 속도가 빠른 편으로 반영할게요.",
-      afternoon: "오후 유분 패턴으로 기록해둘게요.",
-      evening: "늦게 올라오는 정도면 과한 피지 조절은 피하는 쪽이 좋겠어요.",
-      none: "유분보다 수분/장벽 신호를 더 보겠습니다."
+      allinone: "하나로 빠르게 끝나는 루틴을 우선 고려하겠습니다.",
+      minimal: "핵심 2~3단계 안에서 효율적인 조합을 찾겠습니다.",
+      basic: "기본 루틴이 익숙하시니 토너-에센스-크림 흐름으로도 보겠습니다.",
+      maximal: "여러 단계도 가능하니 고민별 레이어드 루틴까지 열어두겠습니다."
     },
     options: [
-      { value: "오전부터", text: "오전부터요", key: "early" },
-      { value: "점심 이후", text: "점심 이후요", key: "afternoon" },
-      { value: "저녁쯤", text: "저녁쯤이에요", key: "evening" },
-      { value: "거의 없다", text: "거의 없어요", key: "none" }
+      { value: "올인원 마니아", text: "올인원 마니아: 하나로 쉽고 빠르게 끝내고 싶어요", key: "allinone" },
+      { value: "미니멀리스트", text: "미니멀리스트: 스킨, 로션 등 2~3단계 정도가 딱 좋아요", key: "minimal" },
+      { value: "베이직 정석", text: "베이직 정석: 토너-에센스-크림 기본 루틴이 익숙해요", key: "basic" },
+      { value: "맥시멀리스트", text: "맥시멀리스트: 피부를 위해 여러 단계도 기꺼이 시도해볼래요", key: "maximal" }
     ]
   },
-  {
-    id: "concern",
-    label: "주요 고민",
-    prompt: "지금 가장 신경 쓰이는 피부 고민은 무엇인가요?",
-    ack: {
-      dry: "보습 지속력과 장벽 쪽 우선순위를 높이겠습니다.",
-      trouble: "진정과 흔적 케어를 같이 보겠습니다.",
-      red: "민감도와 붉은기 관리가 중요해 보이네요.",
-      pore: "모공/피지 밸런스 중심으로 살펴볼게요.",
-      tone: "톤 균일감과 피부결을 같이 체크하겠습니다."
-    },
-    options: [
-      { value: "수분 부족과 속당김", text: "수분 부족 / 속당김", key: "dry" },
-      { value: "트러블과 자국", text: "트러블 / 자국", key: "trouble" },
-      { value: "붉은기와 예민함", text: "붉은기 / 예민함", key: "red" },
-      { value: "모공과 피지", text: "모공 / 피지", key: "pore" },
-      { value: "칙칙함과 톤 불균형", text: "칙칙함 / 톤", key: "tone" }
-    ]
-  },
-  {
-    id: "sensitivity",
-    label: "민감도",
-    prompt: "새 화장품을 쓰면 따갑거나 붉어지는 일이 얼마나 자주 있나요?",
-    ack: {
-      high: "저자극 기준을 우선 적용하겠습니다.",
-      medium: "효과감과 안정성의 균형이 중요하겠어요.",
-      low: "제품 적응력은 비교적 무난한 편으로 보겠습니다."
-    },
-    options: [
-      { value: "높음", text: "자주 있어요", key: "high" },
-      { value: "보통", text: "가끔 있어요", key: "medium" },
-      { value: "낮음", text: "거의 없어요", key: "low" }
-    ]
-  },
-  {
-    id: "breakoutFrequency",
-    label: "트러블 빈도",
-    prompt: "트러블은 어느 정도 주기로 올라오나요?",
-    ack: {
-      often: "트러블 부담을 줄이는 루틴으로 좁혀볼게요.",
-      cycle: "컨디션/주기성 영향을 함께 고려하겠습니다.",
-      rare: "트러블보다 다른 고민을 우선하겠습니다."
-    },
-    options: [
-      { value: "자주 올라온다", text: "자주 올라와요", key: "often" },
-      { value: "컨디션에 따라", text: "컨디션 따라 달라요", key: "cycle" },
-      { value: "거의 없다", text: "거의 없어요", key: "rare" }
-    ]
-  },
-  {
-    id: "texture",
-    label: "피부결",
-    prompt: "피부결은 어떤 쪽이 더 고민인가요?",
-    ack: {
-      flaky: "각질과 보습 유지력을 같이 보겠습니다.",
-      rough: "결 정돈과 자극 최소화가 같이 필요해 보여요.",
-      smooth: "피부결보다는 다른 고민에 우선순위를 두겠습니다."
-    },
-    options: [
-      { value: "각질이 잘 뜬다", text: "각질이 잘 떠요", key: "flaky" },
-      { value: "오돌토돌하고 거칠다", text: "오돌토돌 / 거칠어요", key: "rough" },
-      { value: "크게 불편하지 않다", text: "크게 불편하지 않아요", key: "smooth" }
-    ]
-  },
-  {
-    id: "shavingMakeupIrritation",
-    label: "자극 요인",
-    prompt: "면도나 메이크업처럼 피부에 반복적으로 자극이 되는 루틴이 있나요?",
-    ack: {
-      shaving: "면도 후 진정과 장벽 회복을 더 중요하게 보겠습니다.",
-      makeup: "메이크업 전후 밀착과 클렌징 부담을 함께 보겠습니다.",
-      both: "면도/메이크업 자극을 모두 고려해 진정 루틴을 강화하겠습니다.",
-      none: "외부 루틴 자극은 낮게 반영하겠습니다."
-    },
-    options: [
-      { value: "면도 자극이 있다", text: "면도 자극", key: "shaving" },
-      { value: "메이크업 자극이 있다", text: "메이크업 자극", key: "makeup" },
-      { value: "둘 다 있다", text: "둘 다 있어요", key: "both" },
-      { value: "특별히 없다", text: "특별히 없어요", key: "none" }
-    ]
-  },
-  {
-    id: "sunExposure",
-    label: "야외 활동",
-    prompt: "햇빛이나 외부 환경에 노출되는 시간은 어느 정도인가요?",
-    ack: {
-      low: "실내 중심이면 기본 보습/진정 루틴을 우선할게요.",
-      medium: "일상 자외선과 건조 환경을 함께 고려하겠습니다.",
-      high: "야외 노출이 많다면 장벽과 선케어 연결이 중요하겠어요.",
-      active: "땀과 마찰까지 고려해 산뜻한 루틴을 우선하겠습니다."
-    },
-    options: [
-      { value: "대부분 실내", text: "대부분 실내", key: "low" },
-      { value: "하루 1~2시간 외출", text: "1~2시간 외출", key: "medium" },
-      { value: "야외 활동이 많다", text: "야외 활동 많음", key: "high" },
-      { value: "운동/땀이 많다", text: "운동/땀 많음", key: "active" }
-    ]
-  },
-  {
-    id: "preferredTexture",
-    label: "선호 제형",
-    prompt: "스킨케어 제형은 어떤 느낌을 선호하세요?",
-    ack: {
-      light: "가벼운 제형 선호를 반영하겠습니다.",
-      rich: "보호막과 보습감을 주는 제형도 열어두겠습니다.",
-      watery: "수분감 있는 레이어링 루틴으로 볼게요.",
-      noPreference: "제형 제한은 낮게 두겠습니다."
-    },
-    options: [
-      { value: "가벼운 젤/로션", text: "가벼운 젤 / 로션", key: "light" },
-      { value: "리치한 크림", text: "리치한 크림", key: "rich" },
-      { value: "촉촉한 세럼/앰플", text: "촉촉한 세럼 / 앰플", key: "watery" },
-      { value: "특별한 선호 없음", text: "상관없어요", key: "noPreference" }
-    ]
-  },
-  {
+  avoidPreference: {
     id: "avoidPreference",
-    label: "피하고 싶은 것",
-    prompt: "피하고 싶은 제품 특징이 있나요?",
+    label: "피하고 싶은 특징",
+    prompt: "화장품을 고를 때 이것만큼은 피하고 싶다! 하는 특징이 있나요?",
     ack: {
-      fragrance: "향 부담이 적은 제품을 우선하겠습니다.",
-      heavy: "무거운 마무리감은 피해서 볼게요.",
-      sticky: "끈적임 적은 사용감을 우선하겠습니다.",
-      none: "제외 조건 없이 폭넓게 추천할 수 있겠어요."
+      fragrance: "향 부담이 적은 방향으로 제품을 보겠습니다.",
+      heavy: "답답한 사용감은 피하고 마무리감이 편한 제품을 우선하겠습니다.",
+      sticky: "끈적임이 적은 사용감을 우선 반영하겠습니다.",
+      none: "제외 조건 없이 피부 타입과 성분 적합도를 중심으로 보겠습니다."
     },
     options: [
-      { value: "강한 향", text: "강한 향", key: "fragrance" },
-      { value: "무거운 크림", text: "무거운 크림", key: "heavy" },
-      { value: "끈적임", text: "끈적임", key: "sticky" },
-      { value: "없음", text: "딱히 없어요", key: "none" }
-    ]
-  },
-  {
-    id: "goal",
-    label: "원하는 결과",
-    prompt: "이번 추천에서 가장 기대하는 결과는 무엇인가요?",
-    ack: {
-      calming: "진정 중심으로 최종 분석을 준비하겠습니다.",
-      hydration: "보습 중심으로 최종 분석을 준비하겠습니다.",
-      tone: "톤 개선 중심으로 최종 분석을 준비하겠습니다.",
-      sebum: "피지 조절 중심으로 최종 분석을 준비하겠습니다."
-    },
-    options: [
-      { value: "진정", text: "진정", key: "calming" },
-      { value: "보습", text: "보습", key: "hydration" },
-      { value: "톤 개선", text: "톤 개선", key: "tone" },
-      { value: "피지 조절", text: "피지 조절", key: "sebum" }
+      { value: "강한 향", text: "인공적이고 강한 향", key: "fragrance" },
+      { value: "무겁고 답답한 사용감", text: "무겁고 답답한 사용감", key: "heavy" },
+      { value: "끈적거리는 잔여감", text: "바른 뒤 끈적거리는 잔여감", key: "sticky" },
+      { value: "없음", text: "딱히 없음", key: "none" }
     ]
   }
-];
+};
+
+const baseQuestionIds = ["gender", "ageRange"];
+const youngQuestionIds = ["youngConcern", "youngOilTiming"];
+const matureQuestionIds = ["matureConcern", "matureRecovery"];
+const sharedQuestionIds = ["afterCleanse", "routineStyle", "avoidPreference"];
+const surveyQuestionCount = 7;
+
+function isYoungAgeRange(ageRange) {
+  return /10대|20대/.test(ageRange || "");
+}
+
+function getAgeCourse(ageRange) {
+  return isYoungAgeRange(ageRange)
+    ? { value: "A_10_20", label: "A코스: 피지 제어 및 트러블 집중 케어" }
+    : { value: "B_30_50", label: "B코스: 장벽 강화 및 안티에이징" };
+}
+
+function getActiveQuestionIds() {
+  const ids = [...baseQuestionIds];
+  if (!state.answers.ageRange) {
+    return ids;
+  }
+
+  ids.push(...(isYoungAgeRange(state.answers.ageRange) ? youngQuestionIds : matureQuestionIds));
+  ids.push(...sharedQuestionIds);
+  return ids;
+}
 
 const modal = document.getElementById("skinModal");
 const chatThread = document.getElementById("chatThread");
@@ -345,7 +270,7 @@ function bootChat() {
   updateSnapshot();
   updateProgress();
   addBotMessage("안녕하세요. 더뷰티 AI 스킨 컨시어지입니다.");
-  addBotMessage("성별, 나이대, 루틴 성향, 피부 고민까지 조금 더 세밀하게 여쭤볼게요. 가격과 방송 알림은 추천 결과를 본 뒤 마지막에 안내드릴게요.");
+  addBotMessage("먼저 기본 정보를 확인한 뒤, 나이대에 맞춰 A코스 또는 B코스 질문으로 이어갈게요. 가격과 방송 알림은 추천 결과를 본 뒤 마지막에 안내드리겠습니다.");
   window.setTimeout(showNextQuestion, 360);
 }
 
@@ -366,7 +291,8 @@ function showNextQuestion() {
   state.stepIndex += 1;
   updateProgress();
 
-  const question = skinQuestions[state.stepIndex];
+  const activeQuestionIds = getActiveQuestionIds();
+  const question = skinQuestionMap[activeQuestionIds[state.stepIndex]];
   if (!question) {
     showPhotoUploadStep();
     return;
@@ -407,6 +333,15 @@ function handleAnswer(question, option) {
     label: question.label,
     value: option.text
   };
+
+  if (question.id === "ageRange") {
+    const course = getAgeCourse(option.value);
+    state.answers.ageCourse = course.value;
+    state.answerLabels.ageCourse = {
+      label: "진행 코스",
+      value: course.label
+    };
+  }
 
   addUserMessage(option.text);
   updateSnapshot();
@@ -571,6 +506,7 @@ function renderResult(diagnosis, mode, note, recommendations) {
       </article>
 
       ${note ? `<article class="result-card"><p>${escapeHtml(note)}</p></article>` : ""}
+      ${renderSkinMbtiCard(diagnosis.skinMbtiType)}
       ${renderObnfCard(diagnosis.obnfType)}
       ${renderListCard("Visible Signals", "사진/설문에서 본 신호", diagnosis.visibleSignals)}
       ${renderRoutineCard(diagnosis.routine)}
@@ -594,6 +530,31 @@ function renderResult(diagnosis, mode, note, recommendations) {
   `;
   chatThread.appendChild(row);
   scrollToBottom();
+}
+
+function renderSkinMbtiCard(skinMbtiType) {
+  if (!skinMbtiType?.code) {
+    return "";
+  }
+
+  return `
+    <article class="result-card skin-mbti-card">
+      <p class="eyebrow">Skincare Type</p>
+      <div class="skin-mbti-head">
+        <div>
+          <h3>${escapeHtml(skinMbtiType.title || `${skinMbtiType.code} 타입`)}</h3>
+          <p>${escapeHtml(skinMbtiType.summary || "")}</p>
+        </div>
+        <strong class="skin-mbti-code">${escapeHtml(skinMbtiType.code)}</strong>
+      </div>
+      <p class="standard-source-note">${escapeHtml(skinMbtiType.recommendedSolution || "")}</p>
+      ${Array.isArray(skinMbtiType.matchedSignals) && skinMbtiType.matchedSignals.length ? `
+        <div class="mini-tag-row">
+          ${skinMbtiType.matchedSignals.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+        </div>
+      ` : ""}
+    </article>
+  `;
 }
 
 function renderObnfCard(obnfType) {
@@ -880,7 +841,7 @@ function updateSnapshot() {
 }
 
 function updateProgress(forceComplete = false) {
-  const total = skinQuestions.length + 1;
+  const total = surveyQuestionCount + 1;
   const current = forceComplete
     ? total
     : Math.min(Math.max(state.stepIndex + 1, 0), total);

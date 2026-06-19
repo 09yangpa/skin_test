@@ -1105,6 +1105,35 @@ select {
   color: var(--cream);
 }
 
+.skin-mbti-card {
+  background:
+    linear-gradient(135deg, rgba(255, 250, 240, 0.96), rgba(248, 215, 164, 0.34)),
+    radial-gradient(circle at top right, rgba(46, 80, 61, 0.16), transparent 32%);
+}
+
+.skin-mbti-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.skin-mbti-code {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  min-width: 112px;
+  min-height: 78px;
+  padding: 14px 18px;
+  border: 1px solid rgba(46, 80, 61, 0.16);
+  border-radius: 24px;
+  background: rgba(46, 80, 61, 0.08);
+  color: var(--sage-deep);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: clamp(2.2rem, 7vw, 3.5rem);
+  letter-spacing: 0.08em;
+}
+
 .obnf-card p,
 .obnf-card .eyebrow {
   color: rgba(255, 250, 240, 0.78);
@@ -1190,6 +1219,14 @@ select {
 }
 
 @media (max-width: 640px) {
+  .skin-mbti-head {
+    display: grid;
+  }
+
+  .skin-mbti-code {
+    width: 100%;
+  }
+
   .obnf-card-head {
     display: grid;
   }
