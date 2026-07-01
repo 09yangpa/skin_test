@@ -542,9 +542,12 @@ function renderProfessionalReport(report) {
   const surveyAdjustment = Array.isArray(report.surveyAdjustment) ? report.surveyAdjustment : [];
   const keyFindings = Array.isArray(report.conditionSummary?.keyFindings) ? report.conditionSummary.keyFindings : [];
   const score = clampClientScore(report.overallScore?.score);
+  const uploadedImages = Array.isArray(state.compressedImages) ? state.compressedImages : [];
 
   return `
     <section class="professional-report">
+      ${renderDiagnosticDashboard(report, categories, zones, keyFindings, uploadedImages)}
+
       <article class="result-card professional-hero-card">
         <div class="professional-hero-copy">
           <p class="eyebrow">AI Skin Report</p>
@@ -612,6 +615,117 @@ function renderProfessionalReport(report) {
         <h3>왜 이 제품을 추천하는지</h3>
         <p>${escapeHtml(report.productRecommendationReason || "전성분과 현재 피부 우선도를 함께 매칭합니다.")}</p>
       </article>
+    </section>
+  `;
+}
+
+function renderDiagnosticDashboard(report, categories, zones, keyFindings, uploadedImages) {
+  const score = clampClientScore(report.overallScore?.score);
+  const topCategories = [...categories]
+    .sort((a, b) => clampClientScore(b.score) - clampClientScore(a.score))
+    .slice(0, 3);
+  const reliability = report.photoReliability || {};
+  const reliabilityScore = clampClientScore(reliability.score);
+
+  return `
+    <article class="result-card device-report-card">
+      <div class="device-report-top">
+        <div>
+          <p class="eyebrow">AI Diagnostic Board</p>
+          <h3>AI 피부 분석 보드</h3>
+          <p>사진과 설문 답변을 함께 정리해 전문 장비 리포트처럼 항목별 관리 우선도를 시각화했습니다.</p>
+        </div>
+        <div class="device-score-panel" style="--score: ${score}%">
+          <span>${score}</span>
+          <small>${escapeHtml(report.overallScore?.label || "컨디션 점수")}</small>
+        </div>
+      </div>
+
+      <div class="device-report-layout">
+        <section class="device-face-panel" aria-label="사진 및 부위별 관찰 요약">
+          ${renderPhotoEvidenceStrip(uploadedImages)}
+          ${renderFaceZoneMap(zones)}
+        </section>
+
+        <section class="device-main-panel">
+          <div class="device-kpi-grid">
+            <div>
+              <span>사진 분석 신뢰도</span>
+              <strong>${escapeHtml(reliability.level || "설문 중심")} · ${reliabilityScore}점</strong>
+            </div>
+            <div>
+              <span>우선 관리 항목</span>
+              <strong>${topCategories.map((item) => escapeHtml(item.label)).join(" · ") || "피부 장벽"}</strong>
+            </div>
+            <div>
+              <span>핵심 신호</span>
+              <strong>${keyFindings.slice(0, 2).map(escapeHtml).join(" · ") || "설문 기반 보정"}</strong>
+            </div>
+          </div>
+
+          <div class="device-screen-grid" aria-label="항목별 분석 화면">
+            ${categories.map(renderDiagnosticScreenTile).join("")}
+          </div>
+        </section>
+      </div>
+
+      <p class="device-report-notice">전문 장비의 UV/수분/탄력 실측값이 아닌, 휴대폰 사진과 설문 답변을 바탕으로 한 AI 화장품 추천 참고용 분석입니다.</p>
+    </article>
+  `;
+}
+
+function renderPhotoEvidenceStrip(uploadedImages) {
+  const labels = ["정면", "45도", "확대"];
+  return `
+    <div class="device-photo-strip">
+      ${labels.map((label, index) => {
+        const image = uploadedImages[index];
+        return `
+          <figure class="device-photo-card ${image ? "has-image" : "is-empty"}">
+            ${image ? `<img src="${escapeHtml(image)}" alt="피부 분석용 ${escapeHtml(label)} 사진">` : `<span>${escapeHtml(label)}</span>`}
+            <figcaption>${escapeHtml(label)} 분석</figcaption>
+          </figure>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderFaceZoneMap(zones) {
+  const markerClasses = ["forehead", "tzone", "cheek", "mouth", "jaw"];
+  return `
+    <div class="device-face-map" aria-label="부위별 관찰 위치">
+      <div class="face-outline" aria-hidden="true">
+        <span class="face-eye left"></span>
+        <span class="face-eye right"></span>
+        <span class="face-nose"></span>
+        <span class="face-mouth"></span>
+      </div>
+      ${zones.slice(0, 5).map((zone, index) => `
+        <span class="face-marker ${markerClasses[index] || "cheek"}">
+          <b>${index + 1}</b>
+          <em>${escapeHtml(zone.label || "")}</em>
+        </span>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderDiagnosticScreenTile(item, index) {
+  const score = clampClientScore(item.score);
+  const tone = score >= 70 ? "is-high" : score >= 45 ? "is-mid" : "is-low";
+  return `
+    <section class="device-screen-tile ${tone}">
+      <div class="device-screen-head">
+        <span>Analysis ${String(index + 1).padStart(2, "0")}</span>
+        <strong>${escapeHtml(item.label)}</strong>
+      </div>
+      <div class="device-screen-visual" style="--score: ${score}%">
+        <i aria-hidden="true"></i>
+        <b>${score}</b>
+      </div>
+      <p>${escapeHtml(item.summary || "")}</p>
+      <small>${escapeHtml(item.level || "")}</small>
     </section>
   `;
 }
