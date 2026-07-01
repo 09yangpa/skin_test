@@ -880,6 +880,10 @@ select {
   padding: 18px;
   border-top: 1px solid var(--line);
   background: rgba(255, 250, 240, 0.82);
+  max-height: min(68vh, 720px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
 .control-intro {
@@ -972,6 +976,16 @@ select {
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.6;
+}
+
+.upload-chat-panel .preview-grid {
+  margin-top: 0;
+}
+
+.upload-chat-panel .preview-grid img {
+  aspect-ratio: auto;
+  height: min(22vh, 220px);
+  min-height: 150px;
 }
 
 .consent-row {

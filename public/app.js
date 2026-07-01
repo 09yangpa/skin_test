@@ -182,6 +182,7 @@ function getActiveQuestionIds() {
 const modal = document.getElementById("skinModal");
 const chatThread = document.getElementById("chatThread");
 const chatControls = document.getElementById("chatControls");
+const chatStage = document.querySelector(".chat-stage");
 const typingIndicator = document.getElementById("typingIndicator");
 const snapshotList = document.getElementById("snapshotList");
 const restartChatButton = document.getElementById("restartChatButton");
@@ -422,6 +423,7 @@ function renderUploadControls() {
     };
     updateSnapshot();
     updateSubmitState();
+    scrollToBottom();
     if (state.compressedImages.length && state.compressedImages.length < 3) {
       addBotMessage(`현재 ${state.compressedImages.length}장 업로드됐어요. 3장을 모두 올리면 더 정밀하지만, 현재 사진만으로도 분석을 진행할 수 있습니다.`);
     }
@@ -1063,6 +1065,12 @@ function showTyping(callback, delay = 520) {
 function scrollToBottom() {
   requestAnimationFrame(() => {
     chatThread.scrollTop = chatThread.scrollHeight;
+    if (chatStage) {
+      chatStage.scrollTop = chatStage.scrollHeight;
+    }
+    if (chatControls) {
+      chatControls.scrollTop = chatControls.scrollHeight;
+    }
   });
 }
 
