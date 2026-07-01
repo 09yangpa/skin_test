@@ -1257,139 +1257,6 @@ select {
   text-align: center;
 }
 
-.device-face-map {
-  position: relative;
-  min-height: 320px;
-  overflow: hidden;
-  border: 1px solid rgba(20, 36, 28, 0.18);
-  border-radius: 24px;
-  background: linear-gradient(145deg, rgba(20, 36, 28, 0.96), rgba(46, 80, 61, 0.88));
-  box-shadow: inset 0 0 0 1px rgba(255, 250, 240, 0.12);
-}
-
-.device-analysis-photo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  transform: scale(1.02);
-}
-
-.device-photo-overlay {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(20, 36, 28, 0.22), rgba(20, 36, 28, 0.08) 42%, rgba(20, 36, 28, 0.58)),
-    radial-gradient(circle at 50% 38%, transparent 0 40%, rgba(20, 36, 28, 0.26) 72%),
-    linear-gradient(90deg, rgba(248, 215, 164, 0.2) 0 1px, transparent 1px 100%) 0 0 / 48px 48px,
-    linear-gradient(180deg, rgba(248, 215, 164, 0.18) 0 1px, transparent 1px 100%) 0 0 / 48px 48px;
-  pointer-events: none;
-}
-
-.device-face-map::before,
-.device-face-map::after {
-  content: "";
-  position: absolute;
-  inset: 18px;
-  border: 1px solid rgba(248, 215, 164, 0.34);
-  border-radius: 22px;
-  pointer-events: none;
-}
-
-.device-face-map::after {
-  inset: 44px 34px;
-  border-style: dashed;
-  opacity: 0.6;
-}
-
-.face-marker {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 8px 5px 5px;
-  z-index: 2;
-  border: 1px solid rgba(248, 215, 164, 0.72);
-  border-radius: 999px;
-  background: rgba(20, 36, 28, 0.54);
-  color: var(--cream);
-  font-size: 0.72rem;
-  font-weight: 800;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(12px);
-}
-
-.face-marker b {
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #f8d7a4;
-  color: var(--moss);
-  font-family: "Barlow Condensed", sans-serif;
-}
-
-.face-marker em {
-  font-style: normal;
-  white-space: nowrap;
-}
-
-.face-marker.forehead {
-  left: 50%;
-  top: 36px;
-  transform: translateX(-50%);
-}
-
-.face-marker.tzone {
-  left: 52%;
-  top: 31%;
-}
-
-.face-marker.cheek {
-  left: 8%;
-  top: 44%;
-}
-
-.face-marker.mouth {
-  right: 8%;
-  bottom: 30%;
-}
-
-.face-marker.jaw {
-  left: 50%;
-  bottom: 84px;
-  transform: translateX(-50%);
-}
-
-.device-zone-caption {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 14px;
-  z-index: 2;
-  display: grid;
-  gap: 3px;
-  padding: 12px;
-  border: 1px solid rgba(248, 215, 164, 0.36);
-  border-radius: 16px;
-  background: rgba(20, 36, 28, 0.66);
-  color: var(--cream);
-  backdrop-filter: blur(12px);
-}
-
-.device-zone-caption strong {
-  font-size: 0.92rem;
-}
-
-.device-zone-caption span {
-  color: rgba(255, 250, 240, 0.74);
-  font-size: 0.76rem;
-  line-height: 1.4;
-}
-
 .device-zone-panel {
   display: grid;
   gap: 14px;
@@ -1400,6 +1267,45 @@ select {
   background:
     linear-gradient(135deg, rgba(255, 250, 240, 0.92), rgba(232, 240, 228, 0.82)),
     radial-gradient(circle at top right, rgba(128, 155, 130, 0.18), transparent 32%);
+}
+
+.device-zone-panel.has-photo {
+  min-height: 0;
+  padding: 12px;
+}
+
+.device-analysis-figure {
+  overflow: hidden;
+  display: grid;
+  margin: 0;
+  border: 1px solid rgba(20, 36, 28, 0.16);
+  border-radius: 20px;
+  background: rgba(20, 36, 28, 0.92);
+}
+
+.device-analysis-figure img {
+  width: 100%;
+  max-height: 360px;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.device-analysis-figure figcaption {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  color: var(--cream);
+}
+
+.device-analysis-figure strong {
+  font-size: 0.94rem;
+}
+
+.device-analysis-figure span {
+  color: rgba(255, 250, 240, 0.72);
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .device-zone-panel h4 {
@@ -1918,10 +1824,6 @@ select {
   .device-photo-strip,
   .device-screen-grid {
     grid-template-columns: 1fr;
-  }
-
-  .device-face-map {
-    min-height: 280px;
   }
 
   .professional-hero-card {

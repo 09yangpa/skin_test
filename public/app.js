@@ -692,7 +692,6 @@ function renderPhotoEvidenceStrip(uploadedImages) {
 }
 
 function renderFaceZoneMap(zones, uploadedImages = []) {
-  const markerClasses = ["forehead", "tzone", "cheek", "mouth", "jaw"];
   const analysisImage = uploadedImages[0] || uploadedImages[1] || uploadedImages[2] || "";
 
   if (!analysisImage) {
@@ -720,18 +719,25 @@ function renderFaceZoneMap(zones, uploadedImages = []) {
   }
 
   return `
-    <div class="device-face-map has-photo" aria-label="업로드 사진 기반 부위별 관찰 위치">
-      <img class="device-analysis-photo" src="${escapeHtml(analysisImage)}" alt="AI 피부 분석 기준 사진">
-      <div class="device-photo-overlay" aria-hidden="true"></div>
-      ${zones.slice(0, 5).map((zone, index) => `
-        <span class="face-marker ${markerClasses[index] || "cheek"}">
-          <b>${index + 1}</b>
-          <em>${escapeHtml(zone.label || "")}</em>
-        </span>
-      `).join("")}
-      <div class="device-zone-caption">
-        <strong>사진 기반 부위 관찰</strong>
-        <span>업로드 사진은 분석 요청에만 사용되며 저장되지 않습니다.</span>
+    <div class="device-zone-panel has-photo" aria-label="사진 기반 부위별 관찰 요약">
+      <figure class="device-analysis-figure">
+        <img src="${escapeHtml(analysisImage)}" alt="AI 피부 분석 기준 사진">
+        <figcaption>
+          <strong>분석 기준 사진</strong>
+          <span>정확도를 위해 사진 위 위치 표시는 하지 않고, 부위별 관찰은 아래 리스트로 분리해 안내합니다. 사진은 저장되지 않습니다.</span>
+        </figcaption>
+      </figure>
+      <div class="zone-insight-list">
+        ${zones.slice(0, 5).map((zone, index) => `
+          <section class="zone-insight-row">
+            <b>${index + 1}</b>
+            <div>
+              <strong>${escapeHtml(zone.label || "")}</strong>
+              <span>${escapeHtml(zone.level || "")}</span>
+              <p>${escapeHtml(zone.observation || "")}</p>
+            </div>
+          </section>
+        `).join("")}
       </div>
     </div>
   `;
