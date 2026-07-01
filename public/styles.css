@@ -1066,6 +1066,195 @@ select {
     radial-gradient(circle at top right, rgba(215, 157, 113, 0.16), transparent 30%);
 }
 
+.professional-report {
+  display: grid;
+  gap: 14px;
+}
+
+.professional-hero-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(248, 215, 164, 0.34), transparent 34%),
+    linear-gradient(135deg, rgba(18, 37, 27, 0.98), rgba(46, 80, 61, 0.92));
+  color: var(--cream);
+}
+
+.professional-hero-card h3,
+.professional-hero-card p,
+.professional-hero-card .eyebrow {
+  color: inherit;
+}
+
+.professional-hero-card p {
+  color: rgba(255, 250, 240, 0.78);
+}
+
+.professional-hero-card .pill {
+  background: rgba(255, 250, 240, 0.13);
+  color: var(--cream);
+}
+
+.overall-score {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 142px;
+  height: 142px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(18, 37, 27, 0.94) 0 54%, transparent 55%),
+    conic-gradient(#f8d7a4 0 var(--score, 70%), rgba(255, 250, 240, 0.18) var(--score, 70%) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 250, 240, 0.16), 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+
+.overall-score span {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 3.8rem;
+  font-weight: 800;
+  line-height: 0.86;
+  color: #f8d7a4;
+}
+
+.overall-score small {
+  color: rgba(255, 250, 240, 0.72);
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.18;
+  text-align: center;
+}
+
+.professional-summary-card {
+  background:
+    linear-gradient(135deg, rgba(255, 250, 240, 0.98), rgba(246, 232, 207, 0.74)),
+    radial-gradient(circle at 96% 8%, rgba(46, 80, 61, 0.1), transparent 30%);
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.analysis-item {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid rgba(46, 80, 61, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 250, 240, 0.7);
+}
+
+.analysis-item-head,
+.zone-card > div,
+.reliability-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.analysis-item-head strong,
+.zone-card strong,
+.ingredient-guide-grid strong,
+.routine-guide-grid strong,
+.reliability-head strong {
+  color: var(--sage-deep);
+}
+
+.analysis-item-head span,
+.zone-card span,
+.reliability-head span {
+  color: #9b5b42;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.analysis-meter {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(46, 80, 61, 0.1);
+}
+
+.analysis-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8fa17f, #f8d7a4, #d79d71);
+}
+
+.analysis-item p,
+.analysis-item small,
+.zone-card p,
+.zone-card small,
+.routine-guide-grid p,
+.reliability-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.58;
+}
+
+.analysis-item small,
+.zone-card small {
+  font-weight: 700;
+}
+
+.evidence-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.evidence-list em {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(46, 80, 61, 0.08);
+  color: var(--sage);
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.zone-grid,
+.ingredient-guide-grid,
+.routine-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.zone-card,
+.ingredient-guide-grid section,
+.routine-guide-grid section {
+  padding: 14px;
+  border: 1px solid rgba(46, 80, 61, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.ingredient-report-card {
+  background:
+    linear-gradient(135deg, rgba(255, 250, 240, 0.96), rgba(229, 239, 225, 0.82)),
+    radial-gradient(circle at 0% 0%, rgba(248, 215, 164, 0.24), transparent 28%);
+}
+
+.caution-tags span {
+  background: rgba(155, 91, 66, 0.12);
+  color: #8b4938;
+}
+
+.reliability-card {
+  border-color: rgba(46, 80, 61, 0.16);
+}
+
 .standard-source-note {
   margin: 12px 0 0;
   padding: 12px 14px;
@@ -1219,6 +1408,28 @@ select {
 }
 
 @media (max-width: 640px) {
+  .professional-hero-card {
+    grid-template-columns: 1fr;
+  }
+
+  .overall-score {
+    width: 100%;
+    height: auto;
+    min-height: 116px;
+    border-radius: 28px;
+  }
+
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analysis-item-head,
+  .zone-card > div,
+  .reliability-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .skin-mbti-head {
     display: grid;
   }

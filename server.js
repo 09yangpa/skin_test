@@ -126,6 +126,11 @@ async function handleSkinDiagnosis(request, response) {
     const diagnosis = buildDemoDiagnosis(answers, images.length);
     diagnosis.skinMbtiType = calculateSkinMbtiType(answers, diagnosis);
     diagnosis.obnfType = calculateObnfType(answers, diagnosis);
+    diagnosis.professionalReport = buildProfessionalSkinReport(answers, diagnosis, {
+      imageCount: images.length,
+      hasPhotoAnalysis: false,
+      mode: "demo"
+    });
     return sendJson(response, 200, {
       mode: "demo",
       diagnosis,
@@ -189,6 +194,11 @@ async function handleSkinDiagnosis(request, response) {
       const diagnosis = buildDemoDiagnosis(answers, images.length);
       diagnosis.skinMbtiType = calculateSkinMbtiType(answers, diagnosis);
       diagnosis.obnfType = calculateObnfType(answers, diagnosis);
+      diagnosis.professionalReport = buildProfessionalSkinReport(answers, diagnosis, {
+        imageCount: images.length,
+        hasPhotoAnalysis: false,
+        mode: "demo_fallback"
+      });
       return sendJson(response, 200, {
         mode: "demo_fallback",
         diagnosis,
@@ -215,6 +225,11 @@ async function handleSkinDiagnosis(request, response) {
   }
   diagnosis.skinMbtiType = calculateSkinMbtiType(answers, diagnosis);
   diagnosis.obnfType = calculateObnfType(answers, diagnosis);
+  diagnosis.professionalReport = buildProfessionalSkinReport(answers, diagnosis, {
+    imageCount: images.length,
+    hasPhotoAnalysis: images.length > 0,
+    mode: "openai"
+  });
 
   sendJson(response, 200, {
     mode: "openai",
@@ -1208,6 +1223,322 @@ function cautionLabel(tag) {
     retinoid: "레티노이드",
     heavy_oil: "무거운 오일감"
   }[tag] || tag;
+}
+
+function buildProfessionalSkinReport(rawAnswers = {}, diagnosis = {}, meta = {}) {
+  const answers = normalizeSkinAnswers(rawAnswers);
+  const text = [
+    answers.gender,
+    answers.ageRange,
+    answers.ageCourse,
+    answers.youngConcern,
+    answers.youngOilTiming,
+    answers.matureConcern,
+    answers.matureRecovery,
+    answers.afterCleanse,
+    answers.routineStyle,
+    answers.avoidPreference,
+    answers.concern,
+    answers.oilTiming,
+    answers.sensitivity,
+    answers.breakoutFrequency,
+    answers.texture,
+    answers.goal,
+    diagnosis.profileTitle,
+    diagnosis.skinType,
+    ...(Array.isArray(diagnosis.visibleSignals) ? diagnosis.visibleSignals : []),
+    ...(Array.isArray(diagnosis.priorityConcerns) ? diagnosis.priorityConcerns : []),
+    ...(Array.isArray(diagnosis.ingredientFocus) ? diagnosis.ingredientFocus : []),
+    ...(Array.isArray(diagnosis.avoidOrCaution) ? diagnosis.avoidOrCaution : [])
+  ].filter(Boolean).join(" ");
+
+  const attention = {
+    pores: reportScore(22, text, [
+      [/모공|피지|유분|번들|오전|점심|T존/, 42],
+      [/10대|20대|A_10_20/, 8],
+      [/건조|속당김|거의 없음/, -8]
+    ]),
+    texture: reportScore(20, text, [
+      [/피부결|거칠|오돌토돌|각질|칙칙|메이크업/, 38],
+      [/건조|속당김|장벽/, 14]
+    ]),
+    rednessSensitivity: reportScore(18, text, [
+      [/붉|예민|민감|따갑|진정|강한 향|뒤집|계절/, 50],
+      [/트러블|장벽/, 12]
+    ]),
+    oilSebum: reportScore(18, text, [
+      [/피지|유분|번들|오전부터|얼굴 전체|T존|모공/, 52],
+      [/건조|당김|유분이 거의 없음/, -14]
+    ]),
+    hydration: reportScore(16, text, [
+      [/건조|속당김|당기|수분|보습|히알루론|글리세린|세라마이드/, 54],
+      [/유분이 거의 없음|전체적으로 당기/, 12]
+    ]),
+    barrier: reportScore(18, text, [
+      [/장벽|예민|민감|따갑|붉|회복이 느리|계절|강한 향|속당김/, 50]
+    ]),
+    pigmentationTone: reportScore(14, text, [
+      [/색소|잡티|기미|칙칙|톤|광채|브라이트|나이아신아마이드|자국/, 48],
+      [/30대|40대|50대/, 8]
+    ]),
+    firmnessLine: reportScore(12, text, [
+      [/탄력|라인|리프팅|주름|회복|베개 자국|펩타이드|아데노신/, 52],
+      [/40대|50대/, 16],
+      [/30대/, 8],
+      [/10대|20대/, -8]
+    ]),
+    wrinklePotential: reportScore(10, text, [
+      [/주름|탄력|라인|건조|속당김|회복이 느리|50대/, 50],
+      [/40대/, 18],
+      [/30대/, 10]
+    ]),
+    breakoutPotential: reportScore(14, text, [
+      [/트러블|여드름|피지|모공|붉은 자국|번들|오전/, 54],
+      [/예민|장벽/, 8]
+    ])
+  };
+
+  const averageAttention = Object.values(attention).reduce((sum, value) => sum + value, 0) / Object.keys(attention).length;
+  const overallScore = clampScore(100 - averageAttention + (meta.imageCount ? 3 : -4));
+  const topKeys = Object.keys(attention).sort((left, right) => attention[right] - attention[left]).slice(0, 3);
+  const topLabels = topKeys.map((key) => professionalCategoryMeta[key].label);
+  const hasPhotoAnalysis = Boolean(meta.hasPhotoAnalysis);
+  const imageCount = Number(meta.imageCount || 0);
+
+  return {
+    version: "professional_report_v1",
+    sourceNotice:
+      "이 결과는 휴대폰 사진과 설문 답변을 바탕으로 한 AI 피부 컨디션 분석입니다. 전문 장비의 UV/수분/탄력 실측 결과가 아닌 화장품 추천 참고용 분석입니다.",
+    overallScore: {
+      score: overallScore,
+      label: overallScore >= 76 ? "안정 관리권" : overallScore >= 58 ? "집중 관리권" : "우선 관리권",
+      summary: `현재는 ${topLabels.join(", ")} 항목을 우선 관리하면 전체 컨디션을 가장 빠르게 정돈할 수 있습니다.`
+    },
+    conditionSummary: {
+      headline: `${diagnosis.skinMbtiType?.code || "AI"} 타입 기반 ${topLabels[0] || "피부 컨디션"} 우선 리포트`,
+      description: `${answers.ageRange || "선택 나이대"} ${answers.ageCourse === "A_10_20" ? "A코스" : "B코스"} 답변과 ${imageCount ? `사진 ${imageCount}장` : "설문"} 정보를 함께 정리했습니다.`,
+      keyFindings: dedupe([
+        ...(Array.isArray(diagnosis.priorityConcerns) ? diagnosis.priorityConcerns : []),
+        ...topLabels,
+        diagnosis.obnfType?.code ? `OBNF ${diagnosis.obnfType.code}` : ""
+      ]).slice(0, 6)
+    },
+    categoryAnalysis: Object.entries(professionalCategoryMeta).map(([key, metaItem]) =>
+      buildProfessionalCategory(key, metaItem, attention[key], answers, diagnosis)
+    ),
+    zoneObservations: buildZoneObservations(attention, answers, diagnosis, { imageCount }),
+    photoReliability: {
+      level: hasPhotoAnalysis ? (imageCount >= 3 ? "상" : "중") : "설문 중심",
+      score: hasPhotoAnalysis ? clampScore(58 + imageCount * 12) : 42,
+      imageCount,
+      summary: hasPhotoAnalysis
+        ? `업로드된 사진 ${imageCount}장을 참고했습니다. 조명과 각도 차이가 있을 수 있어 설문 답변으로 보정했습니다.`
+        : "사진이 없어 설문 답변과 피부 고민 패턴을 기준으로 분석했습니다.",
+      limitations: [
+        "UV 색소침착, 포피린, 실제 수분량, 탄력 실측값은 전문 장비 없이 단정하지 않습니다.",
+        "조명, 화장 여부, 카메라 보정, 촬영 각도에 따라 시각 신호가 달라질 수 있습니다."
+      ]
+    },
+    surveyAdjustment: buildSurveyAdjustments(answers, diagnosis),
+    cautionIngredients: buildProfessionalIngredientCautions(answers, diagnosis),
+    recommendedIngredients: dedupe([
+      ...(Array.isArray(diagnosis.ingredientFocus) ? diagnosis.ingredientFocus : []),
+      ...ingredientFocusByType(diagnosis.skinMbtiType?.code || "DRBA")
+    ]).slice(0, 8),
+    routineGuide: {
+      morning: Array.isArray(diagnosis.routine?.morning) ? diagnosis.routine.morning : [],
+      evening: Array.isArray(diagnosis.routine?.evening) ? diagnosis.routine.evening : [],
+      weekly: Array.isArray(diagnosis.routine?.weekly) ? diagnosis.routine.weekly : []
+    },
+    productRecommendationReason:
+      "추천 제품은 전성분 DB의 보습, 장벽, 진정, 피지, 탄력, 톤 관련 태그와 현재 관리 우선도를 조합해 후보화합니다.",
+    disclaimer:
+      "의료 진단이 아닌 화장품 추천 참고용 분석입니다. 통증, 심한 염증, 가려움이 지속되면 피부과 전문의 상담을 권장합니다."
+  };
+}
+
+const professionalCategoryMeta = {
+  pores: {
+    label: "모공",
+    low: "모공 부담은 낮게 보입니다.",
+    mid: "T존과 볼 주변 모공 변화를 꾸준히 관찰해 주세요.",
+    high: "피지와 모공이 함께 두드러질 수 있어 산뜻한 피지 밸런스 케어가 필요합니다.",
+    care: "무거운 오일막보다 가벼운 수분 세럼과 저자극 클렌징을 우선하세요."
+  },
+  texture: {
+    label: "피부결",
+    low: "피부결 거침 신호는 크지 않습니다.",
+    mid: "건조나 각질 때문에 표면 결이 거칠어 보일 수 있습니다.",
+    high: "각질, 건조, 컨디션 저하로 피부결 정돈이 우선입니다.",
+    care: "과한 스크럽보다 수분 유지와 장벽 보습을 먼저 잡아주세요."
+  },
+  rednessSensitivity: {
+    label: "홍조/민감",
+    low: "붉어짐과 민감 반응은 낮은 편으로 봅니다.",
+    mid: "컨디션에 따라 붉어짐이나 따가움이 생길 수 있습니다.",
+    high: "홍조와 민감 신호가 높아 진정과 장벽 보호가 핵심입니다.",
+    care: "향료, 에센셜오일, 고함량 산 성분은 천천히 테스트하세요."
+  },
+  oilSebum: {
+    label: "유분/피지 경향",
+    low: "피지보다 수분 유지가 더 중요한 상태로 보입니다.",
+    mid: "오후 유분과 건조가 함께 나타나는 복합 패턴일 수 있습니다.",
+    high: "유분이 빠르게 올라오는 패턴으로 피지 밸런스가 필요합니다.",
+    care: "번들거림을 줄이되 보습을 빼지 않는 산뜻한 수분 루틴이 좋습니다."
+  },
+  hydration: {
+    label: "수분 부족 신호",
+    low: "수분 부족 신호는 낮게 보입니다.",
+    mid: "세안 후 당김이나 컨디션별 속건조를 관리해 주세요.",
+    high: "속당김과 건조 신호가 커서 수분 공급과 밀폐 보습이 필요합니다.",
+    care: "히알루론산, 글리세린, 세라마이드, 판테놀 계열을 우선하세요."
+  },
+  barrier: {
+    label: "장벽 컨디션",
+    low: "장벽 부담은 비교적 안정적으로 봅니다.",
+    mid: "계절과 컨디션에 따라 장벽 반응이 흔들릴 수 있습니다.",
+    high: "장벽 부담이 높아 기능성보다 회복 루틴이 먼저입니다.",
+    care: "클렌징 강도를 낮추고 판테놀, 세라마이드 중심으로 단순화하세요."
+  },
+  pigmentationTone: {
+    label: "색소/톤 균일도",
+    low: "톤 균일도 관련 우선도는 낮은 편입니다.",
+    mid: "칙칙함이나 자국이 누적되지 않도록 선케어와 브라이트닝을 연결하세요.",
+    high: "잡티, 자국, 칙칙함 관리 우선도가 높습니다.",
+    care: "나이아신아마이드와 데일리 선케어를 함께 보는 것이 좋습니다."
+  },
+  firmnessLine: {
+    label: "탄력/라인",
+    low: "탄력은 예방 관리 중심으로 충분합니다.",
+    mid: "회복력과 라인 변화를 가볍게 관리하기 좋은 단계입니다.",
+    high: "탄력 저하와 라인 고민을 보습 장벽과 함께 관리해야 합니다.",
+    care: "펩타이드, 아데노신, 세라마이드 기반 탄력 보습을 추천합니다."
+  },
+  wrinklePotential: {
+    label: "주름 가능성",
+    low: "주름 가능성은 예방 관리 중심으로 봅니다.",
+    mid: "건조와 표정 라인으로 잔주름이 도드라질 수 있습니다.",
+    high: "건조, 탄력 저하, 회복력 답변상 주름 관리 우선도가 높습니다.",
+    care: "자극적인 고함량보다 보습 탄력 루틴을 꾸준히 연결하세요."
+  },
+  breakoutPotential: {
+    label: "트러블 가능성",
+    low: "트러블 가능성은 낮은 편으로 봅니다.",
+    mid: "피지와 장벽 컨디션에 따라 트러블이 반복될 수 있습니다.",
+    high: "피지, 붉은 자국, 트러블 답변상 진정 케어가 필요합니다.",
+    care: "논코메도제닉에 가까운 산뜻한 제형과 진정 성분을 우선하세요."
+  }
+};
+
+function buildProfessionalCategory(key, metaItem, score, answers, diagnosis) {
+  const level = score >= 66 ? "높음" : score >= 38 ? "보통" : "낮음";
+  return {
+    key,
+    label: metaItem.label,
+    score,
+    level,
+    summary: score >= 66 ? metaItem.high : score >= 38 ? metaItem.mid : metaItem.low,
+    evidence: buildCategoryEvidence(key, answers, diagnosis).slice(0, 3),
+    recommendation: metaItem.care
+  };
+}
+
+function buildCategoryEvidence(key, answers, diagnosis) {
+  const evidence = [];
+  const add = (condition, text) => {
+    if (condition) evidence.push(text);
+  };
+  add(Boolean(answers.youngConcern || answers.matureConcern), `주요 고민: ${answers.youngConcern || answers.matureConcern}`);
+  add(Boolean(answers.afterCleanse), `세안 후 느낌: ${answers.afterCleanse}`);
+  add(Boolean(answers.youngOilTiming), `유분 패턴: ${answers.youngOilTiming}`);
+  add(Boolean(answers.matureRecovery), `회복력: ${answers.matureRecovery}`);
+  add(Boolean(answers.avoidPreference && answers.avoidPreference !== "없음"), `피하고 싶은 특징: ${answers.avoidPreference}`);
+  if (/firmnessLine|wrinklePotential|pigmentationTone/.test(key) && diagnosis.skinMbtiType?.code === "AGER") {
+    evidence.push("AGER 타입 매칭");
+  }
+  if (/rednessSensitivity|barrier/.test(key) && diagnosis.skinMbtiType?.code === "SENS") {
+    evidence.push("SENS 타입 매칭");
+  }
+  if (/pores|oilSebum|breakoutPotential/.test(key) && diagnosis.skinMbtiType?.code === "OSHS") {
+    evidence.push("OSHS 타입 매칭");
+  }
+  if (/hydration|barrier|texture/.test(key) && diagnosis.skinMbtiType?.code === "DRBA") {
+    evidence.push("DRBA 타입 매칭");
+  }
+  return dedupe(evidence);
+}
+
+function buildZoneObservations(attention, answers, diagnosis, meta = {}) {
+  const noPhotoPrefix = meta.imageCount ? "" : "사진 미제공으로 ";
+  const toneHigh = attention.pigmentationTone >= 50;
+  const oilHigh = attention.oilSebum >= 50;
+  const barrierHigh = attention.barrier >= 50;
+  const lineHigh = attention.firmnessLine >= 50 || attention.wrinklePotential >= 50;
+  return [
+    {
+      key: "forehead",
+      label: "이마",
+      level: oilHigh || lineHigh ? "관찰 필요" : "안정",
+      observation: `${noPhotoPrefix}${oilHigh ? "번들거림과 모공성 유분 신호를 함께 봅니다." : "큰 유분 신호보다는 기본 보습 유지가 중요합니다."}`,
+      care: lineHigh ? "표정 라인 부위는 보습 탄력 제품을 얇게 반복하세요." : "아침에는 가벼운 수분막과 선케어를 연결하세요."
+    },
+    {
+      key: "tzone",
+      label: "코/T존",
+      level: oilHigh || attention.pores >= 50 ? "우선 관리" : "보통",
+      observation: `${noPhotoPrefix}${oilHigh ? "피지와 모공 관리 우선도가 가장 높은 부위로 봅니다." : "과세안보다 유수분 균형 유지가 좋습니다."}`,
+      care: "저자극 세안 후 산뜻한 수분 세럼으로 피지 보상 분비를 줄여주세요."
+    },
+    {
+      key: "cheeks",
+      label: "양 볼",
+      level: barrierHigh || attention.hydration >= 50 ? "우선 관리" : "보통",
+      observation: `${noPhotoPrefix}${barrierHigh ? "붉어짐, 속건조, 장벽 부담이 드러나기 쉬운 부위입니다." : "수분 유지와 톤 균일감을 함께 보면 좋습니다."}`,
+      care: "판테놀, 세라마이드, 병풀 계열을 얇게 레이어링하세요."
+    },
+    {
+      key: "mouthLine",
+      label: "입가/팔자",
+      level: lineHigh || attention.hydration >= 50 ? "관찰 필요" : "안정",
+      observation: `${noPhotoPrefix}${lineHigh ? "건조와 탄력 저하가 겹치면 팔자 라인이 도드라져 보일 수 있습니다." : "건조 누적을 막는 예방 케어가 적합합니다."}`,
+      care: "저녁에는 보습 크림을 한 번 더 덧발라 수분 증발을 줄여주세요."
+    },
+    {
+      key: "jawline",
+      label: "턱/라인",
+      level: attention.breakoutPotential >= 50 || lineHigh ? "관찰 필요" : "보통",
+      observation: `${noPhotoPrefix}${attention.breakoutPotential >= 50 ? "트러블과 마찰 반응을 함께 체크해야 하는 부위입니다." : "라인 탄력과 클렌징 잔여감을 함께 관리하세요."}`,
+      care: "마찰이 큰 스크럽을 피하고 세안 잔여물이 남지 않게 정리하세요."
+    }
+  ];
+}
+
+function buildSurveyAdjustments(answers, diagnosis) {
+  return dedupe([
+    answers.ageCourse === "A_10_20"
+      ? "10대·20대 A코스 답변을 반영해 피지, 트러블, 산뜻한 사용감을 우선 보정했습니다."
+      : "30대 이상 B코스 답변을 반영해 장벽, 탄력, 회복력 관점을 우선 보정했습니다.",
+    answers.routineStyle ? `루틴 성향(${answers.routineStyle})에 맞춰 제품 단계 수를 조절합니다.` : "",
+    answers.avoidPreference && answers.avoidPreference !== "없음"
+      ? `피하고 싶은 특징(${answers.avoidPreference})을 주의 성분 판단에 반영했습니다.`
+      : "",
+    diagnosis.skinMbtiType?.code ? `${diagnosis.skinMbtiType.code} 스킨케어 타입을 성분 추천 방향에 반영했습니다.` : "",
+    diagnosis.obnfType?.code ? `${diagnosis.obnfType.code} OBNF 지표를 루틴 강도 조절에 반영했습니다.` : ""
+  ]);
+}
+
+function buildProfessionalIngredientCautions(answers, diagnosis) {
+  return dedupe([
+    ...(Array.isArray(diagnosis.avoidOrCaution) ? diagnosis.avoidOrCaution : []),
+    /예민|민감|붉|따갑|강한 향/.test(`${answers.sensitivity} ${answers.matureConcern} ${answers.avoidPreference}`) ? "향료" : "",
+    /예민|민감|장벽|속당김/.test(`${answers.sensitivity} ${answers.afterCleanse} ${diagnosis.skinType}`) ? "고함량 산/필링 성분" : "",
+    /탄력|주름|예민|장벽/.test(`${answers.goal} ${answers.matureConcern} ${diagnosis.skinType}`) ? "레티노이드 고빈도 사용" : "",
+    /피지|모공|번들|트러블/.test(`${answers.concern} ${answers.youngOilTiming} ${answers.afterCleanse}`) ? "무거운 오일막 제형" : ""
+  ]).slice(0, 6);
+}
+
+function reportScore(base, text, rules) {
+  return clampScore(rules.reduce((score, [pattern, value]) => score + scoreIf(text, pattern, value), base));
 }
 
 function dedupe(values) {

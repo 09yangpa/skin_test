@@ -506,14 +506,10 @@ function renderResult(diagnosis, mode, note, recommendations) {
       </article>
 
       ${note ? `<article class="result-card"><p>${escapeHtml(note)}</p></article>` : ""}
+      ${renderProfessionalReport(diagnosis.professionalReport)}
       ${renderSkinMbtiCard(diagnosis.skinMbtiType)}
       ${renderObnfCard(diagnosis.obnfType)}
-      ${renderListCard("Visible Signals", "사진/설문에서 본 신호", diagnosis.visibleSignals)}
-      ${renderRoutineCard(diagnosis.routine)}
-      ${renderListCard("Ingredient Focus", "추천 성분 방향", diagnosis.ingredientFocus)}
-      ${renderListCard("Caution", "피하거나 조심할 점", diagnosis.avoidOrCaution)}
-      ${renderListCard("Product Direction", "제품 추천 방향", diagnosis.productDirection)}
-      ${renderRecommendationSection(recommendations)}
+      ${renderRecommendationSection(recommendations, diagnosis.professionalReport)}
       ${renderBroadcastAlertCard(recommendations)}
 
       <article class="result-card">
@@ -530,6 +526,183 @@ function renderResult(diagnosis, mode, note, recommendations) {
   `;
   chatThread.appendChild(row);
   scrollToBottom();
+}
+
+function renderProfessionalReport(report) {
+  if (!report) {
+    return "";
+  }
+
+  const categories = Array.isArray(report.categoryAnalysis) ? report.categoryAnalysis : [];
+  const zones = Array.isArray(report.zoneObservations) ? report.zoneObservations : [];
+  const cautionIngredients = Array.isArray(report.cautionIngredients) ? report.cautionIngredients : [];
+  const recommendedIngredients = Array.isArray(report.recommendedIngredients) ? report.recommendedIngredients : [];
+  const surveyAdjustment = Array.isArray(report.surveyAdjustment) ? report.surveyAdjustment : [];
+  const keyFindings = Array.isArray(report.conditionSummary?.keyFindings) ? report.conditionSummary.keyFindings : [];
+  const score = clampClientScore(report.overallScore?.score);
+
+  return `
+    <section class="professional-report">
+      <article class="result-card professional-hero-card">
+        <div class="professional-hero-copy">
+          <p class="eyebrow">AI Skin Report</p>
+          <h3>${escapeHtml(report.conditionSummary?.headline || "AI 피부 컨디션 리포트")}</h3>
+          <p>${escapeHtml(report.conditionSummary?.description || "")}</p>
+          <div class="pill-row">
+            ${keyFindings.map((item) => `<span class="pill">${escapeHtml(item)}</span>`).join("")}
+          </div>
+        </div>
+        <div class="overall-score" style="--score: ${score}%;" aria-label="AI 피부 종합 점수 ${score}점">
+          <span>${score}</span>
+          <small>AI 피부<br>종합 점수</small>
+        </div>
+      </article>
+
+      <article class="result-card professional-summary-card">
+        <p class="eyebrow">Condition Summary</p>
+        <h3>피부 컨디션 요약</h3>
+        <p>${escapeHtml(report.overallScore?.summary || "")}</p>
+        <p class="standard-source-note">${escapeHtml(report.sourceNotice || "")}</p>
+      </article>
+
+      <article class="result-card">
+        <p class="eyebrow">Item Analysis</p>
+        <h3>항목별 분석</h3>
+        <p class="muted-copy">아래 점수는 전문 장비 실측값이 아니라 현재 설문/사진 기반의 관리 우선도입니다. 높을수록 먼저 챙겨야 할 항목입니다.</p>
+        <div class="analysis-grid">
+          ${categories.map(renderAnalysisItem).join("")}
+        </div>
+      </article>
+
+      <article class="result-card">
+        <p class="eyebrow">Zone Observation</p>
+        <h3>부위별 관찰</h3>
+        <div class="zone-grid">
+          ${zones.map(renderZoneObservation).join("")}
+        </div>
+      </article>
+
+      <article class="result-card ingredient-report-card">
+        <p class="eyebrow">Ingredient Guide</p>
+        <h3>추천 성분과 조심할 성분</h3>
+        <div class="ingredient-guide-grid">
+          <section>
+            <strong>추천 성분</strong>
+            <div class="mini-tag-row">
+              ${recommendedIngredients.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+            </div>
+          </section>
+          <section>
+            <strong>이번 피부에서 조심할 성분</strong>
+            <div class="mini-tag-row caution-tags">
+              ${cautionIngredients.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+            </div>
+          </section>
+        </div>
+      </article>
+
+      ${renderProfessionalRoutine(report.routineGuide)}
+      ${renderReliabilityCard(report.photoReliability)}
+      ${renderSurveyAdjustmentCard(surveyAdjustment)}
+
+      <article class="result-card">
+        <p class="eyebrow">Recommendation Logic</p>
+        <h3>왜 이 제품을 추천하는지</h3>
+        <p>${escapeHtml(report.productRecommendationReason || "전성분과 현재 피부 우선도를 함께 매칭합니다.")}</p>
+      </article>
+    </section>
+  `;
+}
+
+function renderAnalysisItem(item) {
+  const score = clampClientScore(item.score);
+  return `
+    <section class="analysis-item">
+      <div class="analysis-item-head">
+        <strong>${escapeHtml(item.label)}</strong>
+        <span>${escapeHtml(item.level || "")} · ${score}점</span>
+      </div>
+      <div class="analysis-meter" aria-hidden="true"><i style="width: ${score}%"></i></div>
+      <p>${escapeHtml(item.summary || "")}</p>
+      ${Array.isArray(item.evidence) && item.evidence.length ? `
+        <div class="evidence-list">
+          ${item.evidence.map((text) => `<em>${escapeHtml(text)}</em>`).join("")}
+        </div>
+      ` : ""}
+      <small>${escapeHtml(item.recommendation || "")}</small>
+    </section>
+  `;
+}
+
+function renderZoneObservation(zone) {
+  return `
+    <section class="zone-card">
+      <div>
+        <strong>${escapeHtml(zone.label)}</strong>
+        <span>${escapeHtml(zone.level || "")}</span>
+      </div>
+      <p>${escapeHtml(zone.observation || "")}</p>
+      <small>${escapeHtml(zone.care || "")}</small>
+    </section>
+  `;
+}
+
+function renderProfessionalRoutine(routine) {
+  if (!routine) return "";
+  const morning = Array.isArray(routine.morning) ? routine.morning : [];
+  const evening = Array.isArray(routine.evening) ? routine.evening : [];
+  const weekly = Array.isArray(routine.weekly) ? routine.weekly : [];
+  return `
+    <article class="result-card">
+      <p class="eyebrow">AM / PM Routine</p>
+      <h3>아침/저녁 루틴</h3>
+      <div class="routine-guide-grid">
+        <section>
+          <strong>아침</strong>
+          <p>${morning.map(escapeHtml).join(" → ")}</p>
+        </section>
+        <section>
+          <strong>저녁</strong>
+          <p>${evening.map(escapeHtml).join(" → ")}</p>
+        </section>
+        <section>
+          <strong>주간</strong>
+          <p>${weekly.map(escapeHtml).join(" / ")}</p>
+        </section>
+      </div>
+    </article>
+  `;
+}
+
+function renderReliabilityCard(reliability) {
+  if (!reliability) return "";
+  const score = clampClientScore(reliability.score);
+  return `
+    <article class="result-card reliability-card">
+      <p class="eyebrow">Photo Reliability</p>
+      <h3>사진 분석 신뢰도</h3>
+      <div class="reliability-head">
+        <strong>${escapeHtml(reliability.level || "설문 중심")}</strong>
+        <span>${score}점 · 사진 ${Number(reliability.imageCount || 0)}장</span>
+      </div>
+      <div class="analysis-meter" aria-hidden="true"><i style="width: ${score}%"></i></div>
+      <p>${escapeHtml(reliability.summary || "")}</p>
+      <ul>
+        ${(reliability.limitations || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+      </ul>
+    </article>
+  `;
+}
+
+function renderSurveyAdjustmentCard(items) {
+  if (!items.length) return "";
+  return `
+    <article class="result-card">
+      <p class="eyebrow">Survey Calibration</p>
+      <h3>설문 기반 보정 내용</h3>
+      <ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+    </article>
+  `;
 }
 
 function renderSkinMbtiCard(skinMbtiType) {
@@ -598,7 +771,7 @@ function renderObnfCard(obnfType) {
   `;
 }
 
-function renderRecommendationSection(recommendations) {
+function renderRecommendationSection(recommendations, report) {
   if (!recommendations) {
     return "";
   }
@@ -616,7 +789,7 @@ function renderRecommendationSection(recommendations) {
 
     ${renderRoutineRecommendations(recommendations.routine || [])}
     ${renderPriceTierRecommendations(recommendations.priceTiers || [])}
-    ${renderAvoidProducts(recommendations.avoidProducts || [])}
+    ${renderRecommendationCautionNotes(recommendations, report)}
   `;
 }
 
@@ -738,19 +911,25 @@ function renderBroadcastAlertControls(recommendations) {
   });
 }
 
-function renderAvoidProducts(products) {
-  if (!products.length) {
+function renderRecommendationCautionNotes(recommendations, report) {
+  const ingredients = [
+    ...(Array.isArray(report?.cautionIngredients) ? report.cautionIngredients : []),
+    ...(Array.isArray(recommendations?.cautionIngredients) ? recommendations.cautionIngredients : [])
+  ].filter(Boolean);
+  const notes = Array.isArray(recommendations?.cautionNotes) ? recommendations.cautionNotes : [];
+  if (!ingredients.length && !notes.length) {
     return "";
   }
 
   return `
     <article class="result-card caution-products-card">
-      <p class="eyebrow">Caution Match</p>
-      <h3>이번 피부상태에서는 조심할 후보</h3>
-      <p>완전히 금지라는 뜻은 아니고, 현재 민감도/목표 기준에서는 사용 빈도나 순서를 조절하는 편이 안전한 제품입니다.</p>
-      <div class="compact-product-list">
-        ${products.map(renderCompactProduct).join("")}
+      <p class="eyebrow">Caution Ingredients</p>
+      <h3>이번 피부상태에서 조심할 성분</h3>
+      <p>특정 브랜드나 상품을 배제하는 의미가 아니라, 현재 컨디션에서 천천히 테스트하면 좋은 성분군입니다.</p>
+      <div class="mini-tag-row caution-tags">
+        ${[...new Set(ingredients)].map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
       </div>
+      ${notes.length ? `<ul>${notes.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}
     </article>
   `;
 }
