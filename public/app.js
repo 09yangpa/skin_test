@@ -547,6 +547,7 @@ function renderProfessionalReport(report) {
   return `
     <section class="professional-report">
       ${renderDiagnosticDashboard(report, categories, zones, keyFindings, uploadedImages)}
+      ${renderDetailedAnalysisLab(categories, uploadedImages)}
 
       <article class="result-card professional-hero-card">
         <div class="professional-hero-copy">
@@ -616,6 +617,143 @@ function renderProfessionalReport(report) {
         <p>${escapeHtml(report.productRecommendationReason || "전성분과 현재 피부 우선도를 함께 매칭합니다.")}</p>
       </article>
     </section>
+  `;
+}
+
+function renderDetailedAnalysisLab(categories, uploadedImages = []) {
+  const categoryMap = new Map(categories.map((item) => [item.key, item]));
+  const panelConfigs = [
+    {
+      id: "pigment",
+      title: "색소침착 분석",
+      subtitle: "잡티, 톤 균일도, 칙칙함 관리 우선도",
+      imageIndex: 0,
+      items: [categoryMap.get("pigmentationTone"), categoryMap.get("texture"), categoryMap.get("barrier")],
+      focus: "색소/톤 균일도"
+    },
+    {
+      id: "tone",
+      title: "피부톤 분석",
+      subtitle: "홍조, 민감 반응, 톤 컨디션 관찰",
+      imageIndex: 0,
+      items: [categoryMap.get("rednessSensitivity"), categoryMap.get("barrier"), categoryMap.get("hydration")],
+      focus: "홍조/민감"
+    },
+    {
+      id: "wrinkle",
+      title: "주름 분석",
+      subtitle: "건조 주름, 탄력 저하, 라인 관리 우선도",
+      imageIndex: 2,
+      items: [categoryMap.get("wrinklePotential"), categoryMap.get("firmnessLine"), categoryMap.get("hydration")],
+      focus: "주름 가능성"
+    },
+    {
+      id: "sebum",
+      title: "피지·모공 분석",
+      subtitle: "유분, 피지, 모공 부담 관리 우선도",
+      imageIndex: 2,
+      items: [categoryMap.get("oilSebum"), categoryMap.get("pores"), categoryMap.get("breakoutPotential")],
+      focus: "유분/피지 경향"
+    },
+    {
+      id: "barrier",
+      title: "수분·장벽 분석",
+      subtitle: "속당김, 보습 유지력, 장벽 회복 우선도",
+      imageIndex: 1,
+      items: [categoryMap.get("hydration"), categoryMap.get("barrier"), categoryMap.get("rednessSensitivity")],
+      focus: "수분 부족 신호"
+    }
+  ];
+
+  const panels = panelConfigs
+    .map((config) => ({
+      ...config,
+      items: config.items.filter(Boolean)
+    }))
+    .filter((config) => config.items.length);
+
+  if (!panels.length) return "";
+
+  return `
+    <article class="result-card analysis-lab-card">
+      <div class="analysis-lab-head">
+        <div>
+          <p class="eyebrow">Detailed Analysis Lab</p>
+          <h3>상세 피부 분석 화면</h3>
+          <p>전문 상담 리포트처럼 항목별 사진 참고, 관리 우선도 그래프, 관찰 포인트와 권장 케어를 나눠 보여드립니다.</p>
+        </div>
+        <span>AI 추정 리포트</span>
+      </div>
+      <div class="analysis-lab-grid">
+        ${panels.map((panel) => renderDetailedAnalysisPanel(panel, uploadedImages)).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderDetailedAnalysisPanel(panel, uploadedImages) {
+  const primary = panel.items[0] || {};
+  const score = clampClientScore(primary.score);
+  const image = uploadedImages[panel.imageIndex] || uploadedImages[0] || uploadedImages[1] || uploadedImages[2] || "";
+  const evidence = Array.isArray(primary.evidence) ? primary.evidence.slice(0, 2) : [];
+  const careSteps = Array.isArray(primary.careSteps) ? primary.careSteps : [];
+
+  return `
+    <section class="analysis-lab-panel ${escapeHtml(panel.id)}">
+      <div class="analysis-lab-photo">
+        ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(panel.title)} 기준 사진">` : `<div class="analysis-photo-empty">사진 없음</div>`}
+        <div class="analysis-photo-label">
+          <strong>${escapeHtml(panel.title)}</strong>
+          <span>${escapeHtml(panel.subtitle)}</span>
+        </div>
+      </div>
+
+      <div class="analysis-lab-body">
+        <div class="analysis-lab-score">
+          <div class="analysis-gauge" style="--score: ${score}%">
+            <span>${score}</span>
+            <small>관리<br>우선도</small>
+          </div>
+          <div>
+            <strong>${escapeHtml(primary.level || "관찰")}</strong>
+            <p>${escapeHtml(primary.summary || "")}</p>
+          </div>
+        </div>
+
+        <div class="analysis-bar-chart" aria-label="${escapeHtml(panel.title)} 항목별 관리 우선도">
+          ${panel.items.map(renderLabBar).join("")}
+        </div>
+
+        <div class="analysis-lab-note-grid">
+          <div>
+            <span>전문가 해석</span>
+            <p>${escapeHtml(primary.expertNote || primary.summary || `${panel.focus} 항목을 중심으로 현재 관리 우선도를 정리했습니다.`)}</p>
+          </div>
+          <div>
+            <span>관리 방향</span>
+            <p>${escapeHtml(primary.recommendation || "현재 피부 상태에 맞춰 자극을 줄이고 균형을 맞추는 루틴을 추천합니다.")}</p>
+          </div>
+        </div>
+
+        <div class="analysis-care-steps">
+          <span>권장 케어 단계</span>
+          <div>
+            ${(careSteps.length ? careSteps : evidence.length ? evidence : [panel.focus]).map((item) => `<em>${escapeHtml(item)}</em>`).join("")}
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderLabBar(item) {
+  const score = clampClientScore(item.score);
+  return `
+    <div class="analysis-bar-row">
+      <span>${escapeHtml(item.label || "")}</span>
+      <i><b style="width: ${score}%"></b></i>
+      <strong>${score}</strong>
+    </div>
   `;
 }
 

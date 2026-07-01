@@ -1439,7 +1439,9 @@ function buildProfessionalCategory(key, metaItem, score, answers, diagnosis) {
     level,
     summary: score >= 66 ? metaItem.high : score >= 38 ? metaItem.mid : metaItem.low,
     evidence: buildCategoryEvidence(key, answers, diagnosis).slice(0, 3),
-    recommendation: metaItem.care
+    recommendation: metaItem.care,
+    expertNote: buildCategoryExpertNote(key, score),
+    careSteps: buildCategoryCareSteps(key, score)
   };
 }
 
@@ -1466,6 +1468,40 @@ function buildCategoryEvidence(key, answers, diagnosis) {
     evidence.push("DRBA 타입 매칭");
   }
   return dedupe(evidence);
+}
+
+function buildCategoryExpertNote(key, score) {
+  const priority = score >= 66 ? "우선 관리" : score >= 38 ? "관찰 관리" : "예방 관리";
+  const notes = {
+    pores: `${priority} 단계입니다. 모공은 단기간에 줄어드는 항목이라기보다 피지 산화, 세안 습관, 보습 균형을 함께 조절해야 안정적으로 보입니다.`,
+    texture: `${priority} 단계입니다. 피부결은 각질만의 문제가 아니라 수분 보유력과 장벽 컨디션이 함께 반영되므로 강한 필링보다 회복 루틴을 먼저 보는 것이 안전합니다.`,
+    rednessSensitivity: `${priority} 단계입니다. 붉어짐과 따가움은 성분 반응, 장벽 약화, 컨디션 저하가 겹쳐 보일 수 있어 신규 기능성 성분은 천천히 도입하는 편이 좋습니다.`,
+    oilSebum: `${priority} 단계입니다. 유분은 무조건 제거하기보다 세안 후 수분 공급을 유지해야 보상성 피지 분비를 줄이는 데 도움이 됩니다.`,
+    hydration: `${priority} 단계입니다. 속당김은 겉보습보다 수분을 붙잡는 성분과 마지막 보습막의 균형이 중요합니다.`,
+    barrier: `${priority} 단계입니다. 장벽 컨디션은 모든 기능성 케어의 바탕이므로 피부가 예민한 시기에는 성분 수를 줄이고 회복 성분을 우선합니다.`,
+    pigmentationTone: `${priority} 단계입니다. 톤 균일도는 자외선 노출, 염증 후 자국, 건조로 인한 칙칙함이 함께 보일 수 있어 선케어와 브라이트닝을 같이 봅니다.`,
+    firmnessLine: `${priority} 단계입니다. 탄력과 라인은 보습 밀도, 수면/컨디션, 표정 사용 습관의 영향을 받기 때문에 꾸준한 보습 탄력 루틴이 중요합니다.`,
+    wrinklePotential: `${priority} 단계입니다. 잔주름은 건조와 탄력 저하가 겹치면 더 도드라져 보일 수 있어 자극적인 고함량보다 보습 기반 탄력 케어가 우선입니다.`,
+    breakoutPotential: `${priority} 단계입니다. 트러블 가능성은 피지와 장벽, 마찰 자극을 함께 봐야 하며 진정 성분과 산뜻한 제형 선택이 중요합니다.`
+  };
+  return notes[key] || `${priority} 단계입니다. 현재 답변과 사진 참고 정보를 바탕으로 관리 우선도를 정리했습니다.`;
+}
+
+function buildCategoryCareSteps(key, score) {
+  const intensity = score >= 66 ? "집중" : score >= 38 ? "균형" : "유지";
+  const steps = {
+    pores: [`${intensity} 클렌징`, "가벼운 수분 세럼", "무거운 오일막 최소화"],
+    texture: [`${intensity} 보습`, "저자극 각질 정돈", "장벽 크림으로 마무리"],
+    rednessSensitivity: [`${intensity} 진정`, "향료/에센셜오일 회피", "판테놀·시카 계열 테스트"],
+    oilSebum: [`${intensity} 피지 밸런스`, "과세안 피하기", "산뜻한 수분 제형"],
+    hydration: [`${intensity} 수분 공급`, "글리세린·히알루론산", "크림으로 수분 증발 차단"],
+    barrier: [`${intensity} 장벽 회복`, "세라마이드·판테놀", "기능성 성분 단계적 도입"],
+    pigmentationTone: [`${intensity} 선케어`, "나이아신아마이드", "자극 적은 브라이트닝"],
+    firmnessLine: [`${intensity} 탄력 보습`, "펩타이드·아데노신", "목/라인까지 연결"],
+    wrinklePotential: [`${intensity} 잔주름 케어`, "보습막 강화", "레티노이드 사용은 천천히"],
+    breakoutPotential: [`${intensity} 진정 케어`, "논코메도제닉 제형", "마찰 자극 줄이기"]
+  };
+  return steps[key] || [`${intensity} 관리`, "저자극 루틴", "피부 반응 관찰"];
 }
 
 function buildZoneObservations(attention, answers, diagnosis, meta = {}) {
