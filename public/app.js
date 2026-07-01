@@ -644,7 +644,7 @@ function renderDiagnosticDashboard(report, categories, zones, keyFindings, uploa
       <div class="device-report-layout">
         <section class="device-face-panel" aria-label="사진 및 부위별 관찰 요약">
           ${renderPhotoEvidenceStrip(uploadedImages)}
-          ${renderFaceZoneMap(zones)}
+          ${renderFaceZoneMap(zones, uploadedImages)}
         </section>
 
         <section class="device-main-panel">
@@ -691,22 +691,48 @@ function renderPhotoEvidenceStrip(uploadedImages) {
   `;
 }
 
-function renderFaceZoneMap(zones) {
+function renderFaceZoneMap(zones, uploadedImages = []) {
   const markerClasses = ["forehead", "tzone", "cheek", "mouth", "jaw"];
-  return `
-    <div class="device-face-map" aria-label="부위별 관찰 위치">
-      <div class="face-outline" aria-hidden="true">
-        <span class="face-eye left"></span>
-        <span class="face-eye right"></span>
-        <span class="face-nose"></span>
-        <span class="face-mouth"></span>
+  const analysisImage = uploadedImages[0] || uploadedImages[1] || uploadedImages[2] || "";
+
+  if (!analysisImage) {
+    return `
+      <div class="device-zone-panel no-photo" aria-label="설문 기반 부위별 관찰 요약">
+        <div>
+          <p class="eyebrow">Zone Insight</p>
+          <h4>사진 없이 설문으로 보정한 부위별 관찰</h4>
+          <p>사진이 없는 경우에는 실제 얼굴 위치 표시 대신, 답변에서 추정되는 관리 포인트를 부위별로 정리합니다.</p>
+        </div>
+        <div class="zone-insight-list">
+          ${zones.slice(0, 5).map((zone, index) => `
+            <section class="zone-insight-row">
+              <b>${index + 1}</b>
+              <div>
+                <strong>${escapeHtml(zone.label || "")}</strong>
+                <span>${escapeHtml(zone.level || "")}</span>
+                <p>${escapeHtml(zone.observation || "")}</p>
+              </div>
+            </section>
+          `).join("")}
+        </div>
       </div>
+    `;
+  }
+
+  return `
+    <div class="device-face-map has-photo" aria-label="업로드 사진 기반 부위별 관찰 위치">
+      <img class="device-analysis-photo" src="${escapeHtml(analysisImage)}" alt="AI 피부 분석 기준 사진">
+      <div class="device-photo-overlay" aria-hidden="true"></div>
       ${zones.slice(0, 5).map((zone, index) => `
         <span class="face-marker ${markerClasses[index] || "cheek"}">
           <b>${index + 1}</b>
           <em>${escapeHtml(zone.label || "")}</em>
         </span>
       `).join("")}
+      <div class="device-zone-caption">
+        <strong>사진 기반 부위 관찰</strong>
+        <span>업로드 사진은 분석 요청에만 사용되며 저장되지 않습니다.</span>
+      </div>
     </div>
   `;
 }
