@@ -1,0 +1,8 @@
+<view class="page"><view class="mast"><text>CASTSHOP</text><text>商品档案</text></view>
+ <view wx:if="{{loading}}" class="section">正在核对在售状态…</view>
+ <view wx:elif="{{error}}" class="section">{{error}}<button class="secondary" bindtap="refresh">重新查看</button></view>
+ <view wx:elif="{{p}}" class="section"><view class="kicker">在售商品 / 资料卡</view><image wx:if="{{p.image && !broken}}" class="pack" mode="aspectFit" src="{{p.image}}" binderror="imageError"></image><view wx:else class="notice">暂无商品图片</view>
+ <view class="sub">{{p.brand}}</view><view class="title">{{p.name}}</view><view>{{p.price}}　{{p.volume}}</view>
+ <view wx:if="{{p.reasons.length}}" class="sub">为什么推荐</view><view wx:for="{{p.reasons}}" wx:key="*this" class="entry">{{item}}</view>
+ <view wx:if="{{p.ingredients.length}}" class="sub">已登记的相关成分</view><text wx:for="{{p.ingredients}}" wx:key="*this" class="pill">{{item}}</text>
+ <view class="foot">商品名和品牌名保留目录原文。价格以实际销售渠道为准。</view></view></view>

@@ -1,0 +1,8 @@
+{
+  "projectname": "castshop-skin",
+  "description": "CastShop 肌肤护理手册",
+  "appid": "touristappid",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "miniprogram/",
+  "setting": { "es6": true, "enhance": true, "minified": true, "urlCheck": true }
+}

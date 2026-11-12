@@ -1,0 +1,18 @@
+<view class="page">
+ <view class="mast"><text>CASTSHOP</text><text>个人问卷</text></view><view class="track"><view style="width:{{progress}}%"></view></view>
+ <view wx:if="{{q}}" class="section"><view class="kicker">肌肤观察 / {{i+1}} OF 12</view><view class="pill">{{q.label}}</view><view class="question">{{q.prompt}}</view>
+ <button wx:for="{{q.options}}" wx:key="value" class="option {{item.value === selected ? 'chosen' : ''}}" data-key="{{q.id}}" data-index="{{index}}" bindtap="choose"><text class="num">0{{index+1}}</text><text>{{item.text}}</text></button>
+ <button class="primary" disabled="{{!selected}}" bindtap="next">{{i===11?'前往照片步骤':'下一题'}}</button></view>
+ <view wx:else class="section"><view class="kicker">末页 / 可选照片</view><view class="title">留下一张正面照</view><view class="muted">在自然光下平视镜头，避免滤镜。照片仅用于本次辅助分析，不存入诊断记录；不上传也可以完成测评。</view>
+ <image wx:if="{{path}}" class="portrait" src="{{path}}" mode="aspectFit"></image>
+ <view class="row"><button class="secondary" data-source="camera" bindtap="pick" disabled="{{busy || picking}}">直接拍照</button><button class="secondary" data-source="album" bindtap="pick" disabled="{{busy || picking}}">从相册选择</button></view>
+ <button wx:if="{{path}}" class="link" bindtap="remove" disabled="{{busy || picking}}">移除照片</button>
+ <button class="link" bindtap="privacy">查看微信隐私保护指引</button>
+ <checkbox-group bindchange="consent"><label class="consent"><checkbox value="ok" checked="{{consent}}" disabled="{{busy}}" color="#345744"/>{{guest?'我同意提交问卷及所选照片的颜色与亮度摘要。不会上传原图或创建会员记录。结果仅供护肤参考，并非医疗诊断。':'我同意提交所选资料并将结果保存至会员账号，了解本报告仅供护肤参考，并非医疗诊断。'}}</label></checkbox-group>
+ <button wx:if="{{path}}" class="primary" data-mode="photo" bindtap="submit" disabled="{{!consent || busy || picking || expired}}" loading="{{busy}}">结合照片与问卷生成报告</button>
+ <button class="{{path?'secondary':'primary'}}" data-mode="survey" bindtap="submit" disabled="{{!consent || busy || picking || expired}}" loading="{{busy}}">仅用问卷生成报告</button>
+ <view wx:if="{{busy}}" class="muted">正在分析问卷并整理护理建议，请稍候…</view></view>
+ <view wx:if="{{error}}" class="error">{{error}}</view><view wx:if="{{uncertain}}" class="muted">若请求已送达，报告可能已经保存。请先查看最近报告，以免重复提交。</view>
+ <button wx:if="{{expired || uncertain}}" class="secondary" bindtap="home">返回会员首页</button>
+ <button wx:if="{{i>0}}" class="link" disabled="{{picking || busy}}" bindtap="prev">返回上一题</button>
+</view>

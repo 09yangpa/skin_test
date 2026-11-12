@@ -1,0 +1,19 @@
+{
+  "answers": {
+    "ageCourse": "B_30_50",
+    "gender": "여성",
+    "ageRange": "40대",
+    "matureConcern": "탄력 저하와 미세한 주름",
+    "matureRecovery": "피부 회복이 느리다고 확연히 느껴요",
+    "afterCleanse": "전체적으로 당기고 건조해요",
+    "routineStyle": "올인원 마니아",
+    "avoidPreference": "강한 향",
+    "sensitivity": "높음",
+    "breakoutFrequency": "항상 여러 개가 있어요",
+    "sunExposure": "야외 활동이 많고 선크림은 잘 안 발라요",
+    "toneConcern": "잡티와 색소 침착",
+    "sleep": "5시간 미만이고 자주 깨요"
+  },
+  "images": [],
+  "analysisLevel": "full"
+}

@@ -1,0 +1,7 @@
+project.private.config.json
+node_modules/
+.env*
+*.key
+*.pem
+*.log
+.DS_Store

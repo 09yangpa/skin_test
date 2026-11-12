@@ -1,0 +1,279 @@
+{
+  "diagnosisId": "fictional-example-not-a-real-record",
+  "mode": "full",
+  "analysisLevel": "full",
+  "saved": true,
+  "savedAt": "2026-11-04T00:00:00.000Z",
+  "imageCount": 0,
+  "hasPhotoAnalysis": false,
+  "answers": {
+    "gender": "여성",
+    "ageRange": "40대",
+    "ageCourse": "B_30_50",
+    "matureConcern": "탄력 저하와 미세한 주름",
+    "matureRecovery": "피부 회복이 느리다고 확연히 느껴요",
+    "afterCleanse": "전체적으로 당기고 건조해요",
+    "routineStyle": "올인원 마니아",
+    "avoidPreference": "강한 향",
+    "sensitivity": "높음",
+    "breakoutFrequency": "항상 여러 개가 있어요",
+    "sunExposure": "야외 활동이 많고 선크림은 잘 안 발라요",
+    "toneConcern": "잡티와 색소 침착",
+    "sleep": "5시간 미만이고 자주 깨요"
+  },
+  "diagnosis": {
+    "profileTitle": "민감성 수분부족 복합형 케어 리포트",
+    "skinType": "민감성 수분부족 복합형으로 추정",
+    "gender": "여성",
+    "confidence": "설문 기반",
+    "basicScores": {
+      "oil": 53,
+      "dryness": 65,
+      "sensitivity": 65,
+      "tone": 85,
+      "lifestyle": 95
+    },
+    "priorityConcerns": [
+      "민감·붉은기",
+      "속건조·장벽",
+      "피지·모공",
+      "톤·자국",
+      "생활 습관"
+    ],
+    "visibleSignals": [
+      "시간대와 부위에 따라 유분감 차이가 있어요.",
+      "수분 부족과 피부 장벽 부담이 높아요.",
+      "민감 반응과 붉은기 부담이 높아요.",
+      "톤 불균형과 자국 관리가 우선이에요.",
+      "생활 습관으로 인한 피부 회복 부담이 높아요."
+    ],
+    "ingredientFocus": [
+      "세라마이드·판테놀·히알루론산",
+      "나이아신아마이드·녹차·아연",
+      "시카·마데카소사이드·알란토인",
+      "비타민C 유도체·나이아신아마이드"
+    ],
+    "avoidOrCaution": [
+      "고농도 산 성분과 향료는 패치 테스트 후 사용해 주세요.",
+      "지나친 세정과 스크럽을 줄여 주세요.",
+      "유분을 없애기 위한 과도한 세안을 줄여 주세요."
+    ],
+    "routine": {
+      "morning": [
+        "미온수 또는 순한 세안 → 수분 세럼 → 가벼운 장벽 크림 → 백탁·자극이 적은 자외선 차단제 순서가 좋아요."
+      ],
+      "evening": [
+        "순한 클렌저 뒤 판테놀·병풀 성분을 바르고, 건조한 볼·턱에만 세라마이드 크림을 한 번 더 레이어링해 보세요."
+      ],
+      "weekly": [
+        "2주 동안은 새 활성 성분을 늘리지 말고, 수분·진정·자외선 차단 세 단계의 피부 반응부터 안정시켜 보세요."
+      ]
+    },
+    "productDirection": [
+      "글리세린·히알루론산으로 수분을 더하고, 세라마이드·판테놀로 보습막을 보완하세요. 번들거림이 신경 쓰이면 저자극 나이아신아마이드 제품을 한 가지만 더해 보세요."
+    ],
+    "storeVisitReason": "",
+    "disclaimer": "설문과 사진 보조 지표로 정리한 화장품 관리 참고 정보이며, 의학적 진단이 아닙니다.",
+    "skinMbtiType": {
+      "code": "민감성수분부족복합형",
+      "title": "민감성 수분부족 복합형 케어 타입",
+      "summary": "유분과 건조 부담이 함께 높고 자극에도 예민합니다.",
+      "basis": "간단 설문과 정면 사진의 보조 정보로 분류했어요.",
+      "recommendedSolution": "2주 동안은 새 활성 성분을 늘리지 말고, 수분·진정·자외선 차단 세 단계의 피부 반응부터 안정시켜 보세요."
+    },
+    "obnfType": {},
+    "professionalReport": {
+      "version": "todaycolor-simple-v1",
+      "sourceNotice": "12개 설문 응답을 서버에서 규칙에 따라 분석했어요. 외부 AI 서비스로 사진을 전송하지 않아요.",
+      "overallScore": {
+        "score": 29,
+        "label": "설문 정밀 분석",
+        "summary": "유분과 건조 부담이 함께 높고 자극에도 예민합니다."
+      },
+      "overallBreakdown": [
+        {
+          "label": "유수분 밸런스",
+          "score": 41,
+          "detail": ""
+        },
+        {
+          "label": "장벽 안정도",
+          "score": 35,
+          "detail": ""
+        },
+        {
+          "label": "진정 안정도",
+          "score": 35,
+          "detail": ""
+        },
+        {
+          "label": "톤 균일도",
+          "score": 15,
+          "detail": ""
+        },
+        {
+          "label": "생활 회복력",
+          "score": 5,
+          "detail": ""
+        }
+      ],
+      "typeAnalysis": {
+        "title": "민감성 수분부족 복합형",
+        "summary": "유분과 건조 부담이 함께 높고 자극에도 예민합니다.",
+        "strength": "제형과 사용 부위를 나누면 답답함 없이 보습과 진정을 함께 챙기기 좋아요.",
+        "ingredients": "글리세린·히알루론산으로 수분을 더하고, 세라마이드·판테놀로 보습막을 보완하세요. 번들거림이 신경 쓰이면 저자극 나이아신아마이드 제품을 한 가지만 더해 보세요.",
+        "watchOut": "향료·에센셜오일, 알코올감이 강한 토너, 고농도 산 성분을 한 번에 겹치는 루틴은 피해주세요.",
+        "morning": "미온수 또는 순한 세안 → 수분 세럼 → 가벼운 장벽 크림 → 백탁·자극이 적은 자외선 차단제 순서가 좋아요.",
+        "evening": "순한 클렌저 뒤 판테놀·병풀 성분을 바르고, 건조한 볼·턱에만 세라마이드 크림을 한 번 더 레이어링해 보세요.",
+        "priority": "2주 동안은 새 활성 성분을 늘리지 말고, 수분·진정·자외선 차단 세 단계의 피부 반응부터 안정시켜 보세요."
+      },
+      "photoObservations": [],
+      "fourWeekRoadmap": [
+        {
+          "week": "1주차 · 루틴 정리",
+          "focus": "아침·저녁 세안과 보습을 일정하게 유지하세요.",
+          "check": ""
+        },
+        {
+          "week": "2주차 · 생활 습관 집중",
+          "focus": "생활 습관 관리에 맞는 제품이나 습관 하나를 추가하세요.",
+          "check": ""
+        },
+        {
+          "week": "3주차 · 톤·자국 보완",
+          "focus": "톤·자국 관리를 추가하고 기존 루틴과 함께 유지하세요.",
+          "check": ""
+        },
+        {
+          "week": "4주차 · 유지 기준 만들기",
+          "focus": "피부에 잘 맞았던 제품과 관리 단계만 유지하세요.",
+          "check": ""
+        }
+      ],
+      "conditionSummary": {
+        "headline": "현재 피부 컨디션",
+        "description": "유분과 건조 부담이 함께 높고 자극에도 예민합니다.",
+        "keyFindings": [
+          "민감·붉은기",
+          "속건조·장벽",
+          "피지·모공",
+          "톤·자국",
+          "생활 습관"
+        ]
+      },
+      "categoryAnalysis": [
+        {
+          "key": "oil",
+          "label": "유분·피지",
+          "score": 53,
+          "level": "관리 권장",
+          "summary": "시간대와 부위에 따라 유분감 차이가 있어요.",
+          "interpretation": "시간대와 부위에 따라 유분감 차이가 있어요.",
+          "photoReference": "",
+          "action": "T존과 볼의 보습제 사용량을 나눠 주세요.",
+          "evidence": [
+            "시간대와 부위에 따라 유분감 차이가 있어요."
+          ],
+          "recommendation": "T존과 볼의 보습제 사용량을 나눠 주세요.",
+          "careSteps": [
+            "T존과 볼의 보습제 사용량을 나눠 주세요."
+          ]
+        },
+        {
+          "key": "dryness",
+          "label": "건조·장벽",
+          "score": 65,
+          "level": "우선 관리",
+          "summary": "수분 부족과 피부 장벽 부담이 높아요.",
+          "interpretation": "수분 부족과 피부 장벽 부담이 높아요.",
+          "photoReference": "",
+          "action": "수분 제품을 바른 뒤 크림으로 수분 증발을 줄여 주세요.",
+          "evidence": [
+            "수분 부족과 피부 장벽 부담이 높아요."
+          ],
+          "recommendation": "수분 제품을 바른 뒤 크림으로 수분 증발을 줄여 주세요.",
+          "careSteps": [
+            "수분 제품을 바른 뒤 크림으로 수분 증발을 줄여 주세요."
+          ]
+        },
+        {
+          "key": "sensitivity",
+          "label": "민감·붉은기",
+          "score": 65,
+          "level": "우선 관리",
+          "summary": "민감 반응과 붉은기 부담이 높아요.",
+          "interpretation": "민감 반응과 붉은기 부담이 높아요.",
+          "photoReference": "",
+          "action": "기능성 제품을 줄이고 진정·보습 위주로 관리하세요.",
+          "evidence": [
+            "민감 반응과 붉은기 부담이 높아요."
+          ],
+          "recommendation": "기능성 제품을 줄이고 진정·보습 위주로 관리하세요.",
+          "careSteps": [
+            "기능성 제품을 줄이고 진정·보습 위주로 관리하세요."
+          ]
+        },
+        {
+          "key": "tone",
+          "label": "톤·자국",
+          "score": 85,
+          "level": "우선 관리",
+          "summary": "톤 불균형과 자국 관리가 우선이에요.",
+          "interpretation": "톤 불균형과 자국 관리가 우선이에요.",
+          "photoReference": "",
+          "action": "자외선 차단과 한 가지 톤 관리 성분을 꾸준히 사용하세요.",
+          "evidence": [
+            "톤 불균형과 자국 관리가 우선이에요."
+          ],
+          "recommendation": "자외선 차단과 한 가지 톤 관리 성분을 꾸준히 사용하세요.",
+          "careSteps": [
+            "자외선 차단과 한 가지 톤 관리 성분을 꾸준히 사용하세요."
+          ]
+        },
+        {
+          "key": "lifestyle",
+          "label": "생활 습관",
+          "score": 95,
+          "level": "우선 관리",
+          "summary": "생활 습관으로 인한 피부 회복 부담이 높아요.",
+          "interpretation": "생활 습관으로 인한 피부 회복 부담이 높아요.",
+          "photoReference": "",
+          "action": "수면 시간을 확보하고 자외선 차단을 꾸준히 유지하세요.",
+          "evidence": [
+            "생활 습관으로 인한 피부 회복 부담이 높아요."
+          ],
+          "recommendation": "수면 시간을 확보하고 자외선 차단을 꾸준히 유지하세요.",
+          "careSteps": [
+            "수면 시간을 확보하고 자외선 차단을 꾸준히 유지하세요."
+          ]
+        }
+      ],
+      "zoneObservations": [],
+      "photoReliability": {
+        "level": "설문 중심",
+        "imageCount": 0,
+        "summary": "사진 지표를 반영하지 않았어요.",
+        "limitations": [
+          "사진의 색·밝기는 조명과 촬영 환경의 영향을 받습니다."
+        ]
+      },
+      "recommendedIngredients": [
+        "세라마이드·판테놀·히알루론산",
+        "나이아신아마이드·녹차·아연",
+        "시카·마데카소사이드·알란토인",
+        "비타민C 유도체·나이아신아마이드"
+      ],
+      "cautionIngredients": [
+        "향료",
+        "고농도 산 성분"
+      ],
+      "disclaimer": "설문과 사진 보조 지표로 정리한 화장품 관리 참고 정보이며, 의학적 진단이 아닙니다."
+    }
+  },
+  "recommendations": {
+    "routine": [],
+    "priceTiers": [],
+    "cautionIngredients": [],
+    "avoidProducts": []
+  }
+}

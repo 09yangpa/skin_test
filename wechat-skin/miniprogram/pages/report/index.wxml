@@ -1,0 +1,19 @@
+<view wx:if="{{r}}" class="page">
+ <view class="mast"><text>CASTSHOP</text><text>{{r.date}}</text></view>
+ <view wx:if="{{r.guest}}" class="notice">访客测评 · 本次结果不保存至会员档案</view>
+ <view wx:if="{{r.example}}" class="notice">示例报告 · 虚构问卷，仅预览界面</view>
+ <view class="hero"><view class="eyebrow">个人肌肤档案</view><view class="score">{{r.score}}<text> / 100</text></view><view class="display small">{{r.type}}</view><view class="deck">{{r.summary}}</view><view class="stamp">{{r.source}}</view></view>
+ <view class="foot">综合分越高，整体状态越稳定。以下各项分数越高，越值得优先护理；并非仪器测量值。</view>
+ <view class="section"><view class="kicker">01 / 观察</view><view class="title">五项肌肤指标</view>
+ <text class="pill" wx:for="{{r.concerns}}" wx:key="*this">{{item}}</text>
+ <view class="entry" wx:for="{{r.metrics}}" wx:key="label"><view class="line"><text class="strong">{{item.label}}</text><text>{{item.score}} 分 {{item.level}}</text></view><view class="track"><view style="width:{{item.score}}%"></view></view><view>{{item.summary}}</view><view class="muted">{{item.action}}</view></view></view>
+ <view class="section"><view class="kicker">02 / 日常</view><view class="title">我的护理步骤</view><view class="entry" wx:for="{{r.steps}}" wx:key="label"><view class="strong">{{item.label}}</view>{{item.text}}</view>
+ <view wx:if="{{r.weeks.length}}" class="sub">四周护理计划</view><view wx:for="{{r.weeks}}" wx:key="label" class="entry"><text class="strong">{{item.label}}　</text>{{item.text}}</view></view>
+ <view class="section"><view class="kicker">03 / 注意事项</view><view class="title">{{r.guest?'使用提醒':'配方阅读笔记'}}</view><view wx:if="{{r.ingredients.length}}" class="sub">可关注的成分</view><text wx:for="{{r.ingredients}}" wx:key="*this" class="pill">{{item}}</text><view wx:if="{{r.caution.length}}" class="sub">使用时留意</view><text wx:for="{{r.caution}}" wx:key="*this" class="pill warn">{{item}}</text><view class="muted">{{r.advice}}</view></view>
+ <view wx:if="{{!r.guest}}" class="section"><view class="kicker">04 / 精选</view><view class="title">匹配的护肤品</view>
+ <view wx:if="{{fetching}}" class="muted">正在核对在售商品…</view><view wx:elif="{{!products.length && !partial}}" class="muted">本次没有可展示的在售商品。</view>
+ <view wx:for="{{products}}" wx:key="id" class="product" bindtap="open" data-id="{{item.id}}"><image wx:if="{{item.image && !broken[item.id]}}" class="thumb" mode="aspectFit" src="{{item.image}}" data-id="{{item.id}}" binderror="broken"></image><view class="thumb placeholder" wx:else>暂无图</view><view class="grow"><view class="muted">{{item.brand}}</view><view class="strong">{{item.name}}</view><view>{{item.price}} · 查看详情 ›</view></view></view>
+ <view wx:if="{{partial}}" class="error">部分商品信息暂时无法核验。<button class="link" bindtap="refresh">重新获取</button></view></view>
+ <view class="foot">照片仅作辅助参考，光线、妆容和背景都会影响结果。此报告不提供医疗诊断。</view>
+ <button class="primary" bindtap="restart">{{r.example?'返回首页':'重新测评'}}</button>
+</view>

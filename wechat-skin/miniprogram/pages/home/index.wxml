@@ -1,0 +1,14 @@
+<view class="page">
+  <view class="mast"><text>CASTSHOP</text><text>肌肤研究室</text></view>
+  <view class="hero"><text class="eyebrow">护肤手记 / 第 01 册</text><view class="display"><view>读懂肌肤，</view><view>再选护理。</view></view><view class="deck">从你的日常感受出发，找到当下适合自己的护理节奏。</view><view class="stamp">肌肤观察 · 个人专册</view></view>
+  <view class="ribbon"><text>12 道问卷</text><text>1 张可选照片</text><text>5 项指标</text></view>
+  <view class="section"><view class="kicker">01 / 访客专用</view><view class="title">无需注册，直接测评</view><view class="muted">根据你的真实问卷生成护理报告。无需会员或微信登录，不保存历史，不上传原始照片。</view><button class="primary" bindtap="guest" disabled="{{busy}}">开始访客测评</button></view>
+  <view class="section"><view class="kicker">02 / 可选会员服务</view><view class="title">{{signed ? '我的肌肤手册' : '已有会员服务'}}</view>
+    <button wx:if="{{!signed}}" class="link" bindtap="toggleMember">已有账号？展开或收起会员服务</button><block wx:if="{{!signed && memberOpen}}"><view class="muted">使用 CastShop 会员邮箱登录，报告将归入你的账号。</view>
+      <form bindsubmit="login"><input name="email" maxlength="254" placeholder="会员邮箱"/><input name="password" value="{{password}}" password="true" placeholder="密码"/>
+      <button class="primary" form-type="submit" disabled="{{busy}}" loading="{{busy}}">登录</button></form></block>
+    <block wx:if="{{signed}}"><button class="primary" bindtap="start" disabled="{{busy}}">开始肌肤测评</button><button class="secondary" bindtap="latest" disabled="{{busy}}" loading="{{busy}}">查看最近报告</button><button class="link" bindtap="logout" disabled="{{busy}}">退出账号</button></block>
+    <button wx:if="{{!signed}}" class="link" bindtap="preview" disabled="{{busy}}">先看看一份示例报告</button>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+  </view><view class="foot">本手册为美容护肤参考，不提供医疗诊断。</view>
+</view>

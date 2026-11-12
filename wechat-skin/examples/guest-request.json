@@ -1,0 +1,19 @@
+{
+  "lang": "zh",
+  "consent": true,
+  "answers": {
+    "gender": 1,
+    "ageRange": 3,
+    "matureConcern": 0,
+    "matureRecovery": 0,
+    "afterCleanse": 0,
+    "routineStyle": 0,
+    "avoidPreference": 0,
+    "sensitivity": 0,
+    "breakoutFrequency": 0,
+    "sunExposure": 0,
+    "toneConcern": 0,
+    "sleep": 0
+  },
+  "photo": null
+}

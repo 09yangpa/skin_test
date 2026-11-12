@@ -1,0 +1,6 @@
+{
+  "pages": ["pages/home/index", "pages/survey/index", "pages/report/index", "pages/product/index"],
+  "window": { "navigationBarTitleText": "肌肤护理手册", "navigationBarBackgroundColor": "#f5f2eb", "navigationBarTextStyle": "black", "backgroundColor": "#f5f2eb" },
+  "networkTimeout": { "request": 65000 },
+  "sitemapLocation": "sitemap.json"
+}
